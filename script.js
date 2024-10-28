@@ -407,8 +407,11 @@ class PomodoroTimer {
         }
 
         this.settings = newSettings;
+        
+        // Update the duration and remaining time immediately
         this.duration = this.settings.focusDuration * 60 * 1000;
         this.remainingTime = this.duration;
+        this.endTime = null;  // Reset endTime
         
         localStorage.setItem('pomodoroSettings', JSON.stringify(this.settings));
         
@@ -424,6 +427,9 @@ class PomodoroTimer {
             this.settings = { ...this.settings, ...JSON.parse(savedSettings) };
             this.duration = this.settings.focusDuration * 60 * 1000;
             this.remainingTime = this.duration;
+            this.endTime = null;  // Reset endTime
+            this.updateDisplay();
+            this.updateCircleProgress(1);
         }
     }
 
@@ -730,3 +736,4 @@ cancelBtn.addEventListener('click', () => {
 if (!localStorage.getItem('pomotorroSettings')) {
   localStorage.setItem('pomotorroSettings', JSON.stringify(DEFAULT_SETTINGS));
 }
+
