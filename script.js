@@ -399,38 +399,17 @@ class PomodoroTimer {
             soundEnabled: this.soundEnabledInput.checked
         };
 
-        // If sound was just enabled, initialize audio context
-        if (newSettings.soundEnabled && !this.settings.soundEnabled) {
-            if (this.audioContext.state === 'suspended') {
-                this.audioContext.resume();
-            }
-        }
-
         this.settings = newSettings;
-        
-        // Update the duration and remaining time immediately
         this.duration = this.settings.focusDuration * 60 * 1000;
         this.remainingTime = this.duration;
-        this.endTime = null;  // Reset endTime
+        this.endTime = null;
         
-        localStorage.setItem('pomodoroSettings', JSON.stringify(this.settings));
+        // Save to the single data store
+        this.saveAllData();
         
         this.updateDisplay();
         this.updateCircleProgress(1);
-        
         this.closeSettings();
-    }
-
-    loadSettings() {
-        const savedSettings = localStorage.getItem('pomodoroSettings');
-        if (savedSettings) {
-            this.settings = { ...this.settings, ...JSON.parse(savedSettings) };
-            this.duration = this.settings.focusDuration * 60 * 1000;
-            this.remainingTime = this.duration;
-            this.endTime = null;  // Reset endTime
-            this.updateDisplay();
-            this.updateCircleProgress(1);
-        }
     }
 
     loadAllData() {
@@ -440,6 +419,8 @@ class PomodoroTimer {
             this.settings = { ...this.settings, ...parsedData.settings };
             this.pointsSystem = { ...this.pointsSystem, ...parsedData.pointsSystem };
             this.tasks = { ...this.tasks, ...parsedData.tasks };
+            
+            // Update duration and display
             this.duration = this.settings.focusDuration * 60 * 1000;
             this.remainingTime = parsedData.remainingTime || this.duration;
             this.isRunning = parsedData.isRunning || false;
