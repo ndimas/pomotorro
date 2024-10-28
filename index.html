@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pomotorro</title>
+  <link rel="icon" type="image/jpeg" href="pomotorro.jpg">
+  <link rel="apple-touch-icon" href="pomotorro.jpg">
+  <link rel="shortcut icon" type="image/jpeg" href="pomotorro.jpg">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <div class="timer-card">
+      <div class="points">Points: <span id="points">120</span></div>
+      
+      <div class="timer-circle">
+        <div class="tomato">
+          <img src="pomotorro.jpg" alt="Pomotorro" class="tomato-img">
+        </div>
+        <svg class="progress-ring" width="300" height="300">
+          <circle class="progress-ring-circle" stroke-width="8" stroke="#e9ecef" fill="transparent" r="140" cx="150" cy="150"/>
+          <circle class="progress-ring-circle-active" stroke-width="8" stroke="#ff6b6b" fill="transparent" r="140" cx="150" cy="150"/>
+        </svg>
+      </div>
+
+      <div class="timer-display">25:00</div>
+      
+      <button class="start-btn">Start</button>
+      <button class="settings-btn">⚙ Settings</button>
+
+      <nav class="bottom-nav">
+        <button class="nav-btn active" data-tab="timeline">Timeline</button>
+        <button class="nav-btn" data-tab="timer">Timer</button>
+        <button class="nav-btn" data-tab="garden">Garden</button>
+        <button class="nav-btn" data-tab="blacklist">Blacklist</button>
+        <button class="nav-btn" data-tab="usage">Usage</button>
+      </nav>
+    </div>
+
+    <!-- Add Settings Modal -->
+    <div class="settings-modal" id="settingsModal">
+        <div class="settings-content">
+            <div class="settings-header">
+                <h2>⚙️ Timer Settings</h2>
+                <button class="close-btn">&times;</button>
+            </div>
+            
+            <div class="settings-body">
+                <div class="setting-group">
+                    <label>Focus Duration</label>
+                    <div class="time-picker">
+                        <button class="time-btn minus">-</button>
+                        <input type="number" id="focusDuration" min="1" max="60" value="25">
+                        <button class="time-btn plus">+</button>
+                        <span class="unit">min</span>
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <label>Short Break</label>
+                    <div class="time-picker">
+                        <button class="time-btn minus">-</button>
+                        <input type="number" id="shortBreak" min="1" max="30" value="5">
+                        <button class="time-btn plus">+</button>
+                        <span class="unit">min</span>
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <label>Long Break</label>
+                    <div class="time-picker">
+                        <button class="time-btn minus">-</button>
+                        <input type="number" id="longBreak" min="1" max="45" value="15">
+                        <button class="time-btn plus">+</button>
+                        <span class="unit">min</span>
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <label>Auto-start Breaks</label>
+                    <label class="switch">
+                        <input type="checkbox" id="autoStartBreaks">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div class="setting-group">
+                    <label>Sound Notifications</label>
+                    <label class="switch">
+                        <input type="checkbox" id="soundEnabled" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="settings-footer">
+                <button class="cancel-btn">Cancel</button>
+                <button class="save-btn">Save Changes</button>
+            </div>
+        </div>
+    </div>
+  </div>
+  <script src="script.js"></script>
+</body>
+</html>

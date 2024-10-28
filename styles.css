@@ -1,0 +1,366 @@
+:root {
+    --primary-color: #ff6b6b;
+    --secondary-color: #e9ecef;
+    --text-color: #343a40;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    background-color: #f8f9fa;
+    color: var(--text-color);
+}
+
+.container {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.timer-card {
+    background: white;
+    border-radius: 25px;
+    padding: 30px 20px;
+    width: 100%;
+    max-width: 400px;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    position: relative;
+}
+
+.points {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: var(--primary-color);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-weight: bold;
+}
+
+.timer-circle {
+    position: relative;
+    width: 300px;
+    height: 300px;
+    margin: 20px auto;
+}
+
+.tomato {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 140px;
+    height: 140px;
+    z-index: 2;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: white;
+    border-radius: 50%;
+    padding: 5px;
+}
+
+.tomato-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    mix-blend-mode: multiply;
+}
+
+.progress-ring {
+    transform: rotate(-90deg);
+}
+
+.progress-ring-circle {
+    transition: stroke-dashoffset 0.35s;
+    transform: rotate(-90deg);
+    transform-origin: 50% 50%;
+}
+
+.progress-ring-circle-active {
+    transition: stroke-dashoffset 1s;
+    transform: rotate(-90deg);
+    transform-origin: 50% 50%;
+    stroke-dasharray: 879.65;
+    stroke-dashoffset: 879.65;
+}
+
+.timer-display {
+    font-size: 48px;
+    font-weight: bold;
+    text-align: center;
+    margin: 20px 0;
+}
+
+.start-btn,
+.settings-btn {
+    display: block;
+    width: 80%;
+    margin: 10px auto;
+    padding: 12px;
+    border: none;
+    border-radius: 25px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.start-btn {
+    background: var(--primary-color);
+    color: white;
+}
+
+.settings-btn {
+    background: transparent;
+    color: #4a9eff;
+}
+
+.start-btn:hover,
+.settings-btn:hover {
+    transform: scale(1.05);
+}
+
+.bottom-nav {
+    display: flex;
+    justify-content: space-around;
+    margin-top: 30px;
+    border-top: 1px solid var(--secondary-color);
+    padding-top: 15px;
+}
+
+.nav-btn {
+    background: none;
+    border: none;
+    font-size: 14px;
+    color: #868e96;
+    cursor: pointer;
+    padding: 5px;
+}
+
+.nav-btn.active {
+    color: var(--primary-color);
+}
+
+@media (max-width: 400px) {
+    .timer-circle {
+        width: 250px;
+        height: 250px;
+    }
+    
+    .timer-display {
+        font-size: 36px;
+    }
+    
+    .tomato {
+        width: 120px;
+        height: 120px;
+        padding: 4px;
+    }
+}
+
+/* Add these styles to your existing CSS */
+
+/* Modal Styles */
+.settings-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.settings-modal.show {
+    display: flex;
+    opacity: 1;
+}
+
+.settings-content {
+    background: white;
+    width: 90%;
+    max-width: 500px;
+    margin: auto;
+    border-radius: 20px;
+    overflow: hidden;
+    transform: translateY(20px);
+    transition: transform 0.3s ease;
+}
+
+.settings-modal.show .settings-content {
+    transform: translateY(0);
+}
+
+.settings-header {
+    padding: 20px;
+    border-bottom: 1px solid var(--secondary-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.settings-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    color: var(--text-color);
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #868e96;
+}
+
+.settings-body {
+    padding: 20px;
+}
+
+.setting-group {
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.setting-group label {
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+.time-picker {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.time-btn {
+    width: 30px;
+    height: 30px;
+    border: none;
+    border-radius: 50%;
+    background: var(--secondary-color);
+    color: var(--text-color);
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.time-btn:hover {
+    background: #dee2e6;
+}
+
+.time-picker input {
+    width: 50px;
+    text-align: center;
+    border: 1px solid var(--secondary-color);
+    border-radius: 5px;
+    padding: 5px;
+    font-size: 16px;
+}
+
+.unit {
+    color: #868e96;
+}
+
+/* Switch Toggle */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 24px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 34px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: 2px;
+    bottom: 2px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked + .slider {
+    background-color: var(--primary-color);
+}
+
+input:checked + .slider:before {
+    transform: translateX(26px);
+}
+
+.settings-footer {
+    padding: 20px;
+    border-top: 1px solid var(--secondary-color);
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.cancel-btn,
+.save-btn {
+    padding: 8px 16px;
+    border-radius: 5px;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    transition: transform 0.2s;
+}
+
+.cancel-btn {
+    background: var(--secondary-color);
+    color: var(--text-color);
+}
+
+.save-btn {
+    background: var(--primary-color);
+    color: white;
+}
+
+.cancel-btn:hover,
+.save-btn:hover {
+    transform: scale(1.05);
+}
+
+@media (max-width: 400px) {
+    .settings-content {
+        width: 95%;
+    }
+
+    .setting-group {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+}
