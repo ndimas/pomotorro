@@ -35,8 +35,25 @@
       </div>
 
       <div class="timer-display">25:00</div>
-
       <button class="start-btn">Start</button>
+
+      <!-- Add this right after the timer display and before the start button -->
+      <div class="task-section">
+        <div class="current-task">
+          <input type="text" 
+                 id="taskInput" 
+                 placeholder="What are you working on?" 
+                 class="task-input">
+        </div>
+        
+        <div class="task-history">
+          <h3>Recent Tasks</h3>
+          <div class="task-list" id="taskList">
+            <!-- Tasks will be inserted here dynamically -->
+          </div>
+        </div>
+      </div>
+
       <button class="settings-btn">⚙ Settings</button>
 
       <nav class="bottom-nav">
@@ -111,7 +128,7 @@
       </div>
     </div>
   </div>
-  <script src="script.js"></script>
+  <script defer src="script.js"></script>
 </body>
 
 </html>

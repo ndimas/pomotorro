@@ -25,15 +25,23 @@ class PomodoroTimer {
             lastPomodoro: null
         };
 
-        this.loadAllData();
+        this.tasks = {
+            current: null,
+            history: []
+        };
+        
+        this.loadAllData(); // This already loads tasks
         this.initializeElements();
         this.initializeEventListeners();
         this.updateCircleProgress(1);
         this.initializeSettingsModal();
-        
-        // Initialize Audio Context and sounds
         this.initializeAudio();
-        
+        this.initializeTaskSystem(); // Move this here
+
+        // Remove these lines as they're redundant
+        // this.loadTasks();  // Remove this
+        // this.initializeTaskSystem();  // Remove this duplicate
+
         // Add visibility change handler
         document.addEventListener('visibilitychange', () => {
             if (this.isRunning) {
@@ -147,10 +155,15 @@ class PomodoroTimer {
         // Update timer display
         this.timerDisplay.textContent = timeString;
         
-        // Update page title
+        // Update page title with current task if exists
+        let title = this.originalTitle;
+        if (this.tasks.current && this.tasks.current.title) {
+            title = this.tasks.current.title;
+        }
+        
         document.title = this.isRunning 
-            ? `(${timeString}) ${this.originalTitle}`
-            : this.originalTitle;
+            ? `(${timeString}) ${title}`
+            : title;
     }
 
     updateCircleProgress(percent) {
@@ -230,14 +243,34 @@ class PomodoroTimer {
     }
 
     async completePomodoro() {
-        const pointsEarned = this.calculatePointsEarned();
+        // Calculate points first
+        let pointsEarned;
+        if (this.tasks.current) {
+            pointsEarned = this.completeCurrentTask();
+        } else {
+            pointsEarned = this.calculatePointsEarned();
+        }
+        
+        // Reset timer state
+        this.pauseTimer();
+        this.isRunning = false;
+        this.remainingTime = this.duration;
+        this.endTime = null;  // Add this line to reset endTime
+        this.timer = null;    // Add this line to ensure timer is cleared
+        
+        // Update UI
+        this.startBtn.textContent = 'Start';
+        this.updateDisplay();
+        this.updateCircleProgress(1);
+        
+        // Add points and show notification
         this.addPoints(pointsEarned);
         
-        // Show points earned notification
         const notification = document.createElement('div');
         notification.className = 'points-notification';
         notification.innerHTML = `
             <p>+${pointsEarned} points</p>
+            ${this.tasks.current ? '<p>+25% Task Bonus!</p>' : ''}
             ${this.pointsSystem.streakCount > 1 ? `<p>🔥 ${this.pointsSystem.streakCount}x streak!</p>` : ''}
         `;
         document.body.appendChild(notification);
@@ -246,26 +279,18 @@ class PomodoroTimer {
             setTimeout(() => notification.remove(), 500);
         }, 2000);
 
-        this.pauseTimer();
-        this.isRunning = false;
-        this.remainingTime = this.duration;
-        this.points += 20;
-        this.pointsDisplay.textContent = this.points;
-        this.startBtn.textContent = 'Start';
-        this.updateDisplay();
-        this.updateCircleProgress(1);
-        document.title = this.originalTitle;
-        
-        // Play completion sound and wait for it to load if needed
+        // Play sound
         if (this.settings.soundEnabled) {
             const sound = this.sounds.complete;
             if (!sound.buffer) {
                 await this.loadSound(sound);
             }
             this.playSound('complete');
-            // Wait a small moment for the sound to start playing
             await new Promise(resolve => setTimeout(resolve, 100));
         }
+        
+        // Save the reset state
+        this.saveAllData();
         
         alert('Pomodoro completed! Take a break.');
     }
@@ -408,6 +433,7 @@ class PomodoroTimer {
             const parsedData = JSON.parse(savedData);
             this.settings = { ...this.settings, ...parsedData.settings };
             this.pointsSystem = { ...this.pointsSystem, ...parsedData.pointsSystem };
+            this.tasks = { ...this.tasks, ...parsedData.tasks };
             this.duration = this.settings.focusDuration * 60 * 1000;
             this.remainingTime = parsedData.remainingTime || this.duration;
             this.isRunning = parsedData.isRunning || false;
@@ -419,7 +445,8 @@ class PomodoroTimer {
             settings: this.settings,
             pointsSystem: this.pointsSystem,
             remainingTime: this.remainingTime,
-            isRunning: this.isRunning
+            isRunning: this.isRunning,
+            tasks: this.tasks
         };
         localStorage.setItem('pomodoroData', JSON.stringify(dataToSave));
     }
@@ -471,6 +498,161 @@ class PomodoroTimer {
         
         // Play the sound
         source.start(0);
+    }
+
+    initializeTaskSystem() {
+        this.taskInput = document.getElementById('taskInput');
+        this.taskList = document.getElementById('taskList');
+
+        // Task input handler
+        this.taskInput.addEventListener('change', (e) => {
+            this.setCurrentTask(e.target.value);
+        });
+
+        // Initial render of task history
+        this.renderTaskHistory();
+    }
+
+    setCurrentTask(taskTitle) {
+        if (!taskTitle.trim()) return;
+
+        this.tasks.current = {
+            title: taskTitle.trim(),
+            startTime: new Date().toISOString(),
+            duration: 0,
+            completed: false
+        };
+        
+        this.saveTasks();
+    }
+
+    completeCurrentTask() {
+        if (!this.tasks.current) return;
+
+        const task = this.tasks.current;
+        task.completed = true;
+        task.endTime = new Date().toISOString();
+        task.duration = this.settings.focusDuration; // in minutes
+        
+        // Calculate bonus points (25% extra for completing with a task)
+        const basePoints = this.calculatePointsEarned();
+        const taskBonus = Math.round(basePoints * 0.25);
+        const totalPoints = basePoints + taskBonus;
+        
+        // Store the points with the task
+        task.points = totalPoints;  // Add this line to store points
+
+        // Add to history and clear current
+        this.tasks.history.unshift(task);
+        this.tasks.current = null;
+        this.taskInput.value = '';
+        
+        // Save and render
+        this.saveTasks();
+        this.renderTaskHistory();
+
+        return totalPoints;
+    }
+
+    // Add these helper functions
+    groupTasksByDate(tasks) {
+        const now = new Date();
+        const oneDay = 24 * 60 * 60 * 1000;
+        const oneWeek = 7 * oneDay;
+
+        const groups = {
+            today: [],
+            lastWeek: [],
+            byMonth: {}
+        };
+
+        tasks.forEach(task => {
+            const taskDate = new Date(task.endTime);
+            const timeDiff = now - taskDate;
+            const monthKey = taskDate.toLocaleString('default', { month: 'long', year: 'numeric' });
+
+            // Today
+            if (timeDiff < oneDay && taskDate.getDate() === now.getDate()) {
+                groups.today.push(task);
+            }
+            // Last Week
+            else if (timeDiff < oneWeek) {
+                groups.lastWeek.push(task);
+            }
+            // Group by Month
+            else {
+                if (!groups.byMonth[monthKey]) {
+                    groups.byMonth[monthKey] = [];
+                }
+                groups.byMonth[monthKey].push(task);
+            }
+        });
+
+        return groups;
+    }
+
+    renderTaskGroup(tasks, title) {
+        if (!tasks || tasks.length === 0) return '';
+        
+        return `
+            <div class="task-group">
+                <h4 class="task-group-title">${title}</h4>
+                ${tasks.map(task => `
+                    <div class="task-item">
+                        <div class="task-item-left">
+                            <div class="task-title">${task.title}</div>
+                            <div class="task-meta">
+                                ${task.duration}min • ${new Date(task.endTime).toLocaleDateString()}
+                            </div>
+                        </div>
+                        <div class="task-points">+${task.points || 0}pts</div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    // Update the renderTaskHistory method
+    renderTaskHistory() {
+        if (!this.taskList) return;
+
+        if (this.tasks.history.length === 0) {
+            this.taskList.parentElement.style.display = 'none';
+            return;
+        }
+
+        this.taskList.parentElement.style.display = 'block';
+        const groupedTasks = this.groupTasksByDate(this.tasks.history);
+        
+        let html = '';
+
+        // Today's tasks
+        if (groupedTasks.today.length > 0) {
+            html += this.renderTaskGroup(groupedTasks.today, 'Today');
+        }
+
+        // Last week's tasks
+        if (groupedTasks.lastWeek.length > 0) {
+            html += this.renderTaskGroup(groupedTasks.lastWeek, 'Last Week');
+        }
+
+        // Monthly tasks
+        Object.entries(groupedTasks.byMonth).forEach(([month, tasks]) => {
+            html += this.renderTaskGroup(tasks, month);
+        });
+
+        this.taskList.innerHTML = html;
+    }
+
+    loadTasks() {
+        const savedTasks = localStorage.getItem('pomodoroTasks');
+        if (savedTasks) {
+            this.tasks = JSON.parse(savedTasks);
+        }
+    }
+
+    saveTasks() {
+        localStorage.setItem('pomodoroTasks', JSON.stringify(this.tasks));
     }
 }
 
