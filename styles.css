@@ -36,23 +36,23 @@ body {
 
 .points {
     position: absolute;
-    top: -15px;
+    top: 20px;
     right: 20px;
-    background: var(--primary-color);
+    background: rgba(255, 107, 107, 0.9);
+    padding: 8px 16px;
+    border-radius: 20px;
     color: white;
-    padding: 12px 20px;
-    border-radius: 15px;
     font-weight: bold;
-    width: auto;
-    min-width: 150px;
-    box-shadow: 0 4px 10px rgba(255, 107, 107, 0.2);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    z-index: 10;
 }
 
 .points-content {
-    margin-bottom: 8px;
     display: flex;
     flex-direction: column;
+    align-items: flex-end;
     gap: 4px;
+    font-size: 14px;
 }
 
 .points-content div {
@@ -65,18 +65,18 @@ body {
 }
 
 .level-progress {
+    width: 100%;
+    height: 4px;
     background: rgba(255, 255, 255, 0.3);
-    height: 3px;
-    border-radius: 1.5px;
-    overflow: hidden;
-    margin-top: 2px;
+    border-radius: 2px;
+    margin-top: 4px;
 }
 
 .level-bar {
     height: 100%;
     background: white;
+    border-radius: 2px;
     transition: width 0.3s ease;
-    border-radius: 1.5px;
 }
 
 .level-up-notification,
@@ -138,15 +138,16 @@ body {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 140px;
-    height: 140px;
+    width: 120px;
+    height: 120px;
+    background: white;
+    border-radius: 50%;
+    padding: 10px;
     z-index: 2;
     display: flex;
     justify-content: center;
     align-items: center;
-    background: white;
-    border-radius: 50%;
-    padding: 5px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .tomato-img {
@@ -157,21 +158,20 @@ body {
 }
 
 .progress-ring {
-    transform: rotate(-90deg);
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 300px;
+    height: 300px;
 }
 
-.progress-ring-circle {
-    transition: stroke-dashoffset 0.35s;
-    transform: rotate(-90deg);
-    transform-origin: 50% 50%;
-}
-
+.progress-ring-circle,
 .progress-ring-circle-active {
-    transition: stroke-dashoffset 1s;
-    transform: rotate(-90deg);
-    transform-origin: 50% 50%;
-    stroke-dasharray: 879.65;
-    stroke-dashoffset: 879.65;
+    r: 140px;
+    cx: 150px;
+    cy: 150px;
+    stroke-width: 8px;
+    fill: transparent;
 }
 
 .timer-display {
@@ -617,9 +617,9 @@ input:checked + .slider:before {
 
   .timer-circle {
     position: relative;
-    width: 240px;
-    height: 240px;
-    margin: 60px auto 30px; /* Increased margins */
+    width: 280px;
+    height: 280px;
+    margin: 40px auto 20px;
   }
 
   .tomato {
@@ -627,11 +627,11 @@ input:checked + .slider:before {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 70px;   /* Slightly smaller */
-    height: 70px;  /* Slightly smaller */
-    padding: 8px;  /* Adjusted padding */
+    width: 100px;
+    height: 100px;
     background: white;
     border-radius: 50%;
+    padding: 8px;
     z-index: 2;
     display: flex;
     justify-content: center;
@@ -650,29 +650,23 @@ input:checked + .slider:before {
     position: absolute;
     top: 0;
     left: 0;
-    width: 240px;
-    height: 240px;
-    transform: rotate(-90deg);
+    width: 280px;
+    height: 280px;
   }
 
   .progress-ring-circle,
   .progress-ring-circle-active {
-    r: 114px;     /* Adjusted radius */
-    cx: 120px;    /* Center X coordinate (240/2) */
-    cy: 120px;    /* Center Y coordinate (240/2) */
+    r: 134px;
+    cx: 140px;
+    cy: 140px;
     stroke-width: 6px;
-    fill: transparent;
-  }
-
-  /* Update the stroke-dasharray for the new circle size */
-  .progress-ring-circle-active {
-    stroke-dasharray: 716.28; /* 2 * π * 114 (new radius) */
-    stroke-dashoffset: 716.28;
+    stroke-dasharray: 841.95;
+    stroke-dashoffset: 841.95;
   }
 
   .timer-display {
-    font-size: 2.5rem;
-    margin: 15px 0;
+    font-size: 48px;
+    margin: 20px 0;
   }
 
   .start-btn {
@@ -680,7 +674,7 @@ input:checked + .slider:before {
     max-width: 280px;
     margin: 10px auto;
     padding: 15px;
-    font-size: 1.1rem;
+    font-size: 18px;
   }
 
   .task-input {
@@ -688,7 +682,7 @@ input:checked + .slider:before {
     max-width: 280px;
     margin: 20px auto 10px;
     padding: 12px;
-    font-size: 1rem;
+    font-size: 16px;
   }
 
   .task-section {
@@ -713,9 +707,10 @@ input:checked + .slider:before {
   /* Points display adjustment */
   .points {
     position: absolute;
-    top: 25px;  /* Moved down slightly */
-    right: 20px;
-    padding: 10px 18px;  /* Increased padding */
+    top: 15px;
+    right: 15px;
+    padding: 8px 16px;
+    font-size: 14px;
   }
 }
 
@@ -730,6 +725,62 @@ input:checked + .slider:before {
   .timer-card {
     padding-top: max(20px, env(safe-area-inset-top));
     padding-bottom: max(20px, env(safe-area-inset-bottom));
+  }
+}
+
+/* Mobile responsiveness improvements */
+@media (max-width: 480px) {
+  .points {
+    top: 10px;
+    right: 10px;
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+
+  .timer-circle {
+    width: 280px;
+    height: 280px;
+  }
+
+  .progress-ring {
+    width: 280px;
+    height: 280px;
+  }
+
+  .tomato-img {
+    width: 100px;
+    height: 100px;
+  }
+
+  .timer-display {
+    font-size: 2.5rem;
+  }
+
+  .task-input {
+    font-size: 14px;
+    padding: 8px 12px;
+  }
+}
+
+/* Even smaller screens */
+@media (max-width: 360px) {
+  .timer-circle {
+    width: 240px;
+    height: 240px;
+  }
+
+  .progress-ring {
+    width: 240px;
+    height: 240px;
+  }
+
+  .tomato-img {
+    width: 80px;
+    height: 80px;
+  }
+
+  .timer-display {
+    font-size: 2rem;
   }
 }
 
