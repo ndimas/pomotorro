@@ -30,17 +30,16 @@ class PomodoroTimer {
             history: []
         };
         
-        this.loadAllData(); // This already loads tasks
+        // Initialize elements first
         this.initializeElements();
+        
+        // Then load data and set up other functionality
+        this.loadAllData();
         this.initializeEventListeners();
         this.updateCircleProgress(1);
         this.initializeSettingsModal();
         this.initializeAudio();
-        this.initializeTaskSystem(); // Move this here
-
-        // Remove these lines as they're redundant
-        // this.loadTasks();  // Remove this
-        // this.initializeTaskSystem();  // Remove this duplicate
+        this.initializeTaskSystem();
 
         // Add visibility change handler
         document.addEventListener('visibilitychange', () => {
@@ -56,8 +55,14 @@ class PomodoroTimer {
     }
 
     initializeElements() {
-        this.startBtn = document.querySelector('.start-btn');
+        // Add this line at the beginning to ensure we get the timer display element
         this.timerDisplay = document.querySelector('.timer-display');
+        if (!this.timerDisplay) {
+            console.error('Timer display element not found');
+            return;
+        }
+
+        this.startBtn = document.querySelector('.start-btn');
         this.progressRing = document.querySelector('.progress-ring-circle-active');
         this.pointsDisplay = document.getElementById('points');
         this.navBtns = document.querySelectorAll('.nav-btn');
@@ -127,11 +132,16 @@ class PomodoroTimer {
         this.updateCircleProgress(this.remainingTime / this.duration);
 
         if (this.remainingTime === 0) {
-            this.completePomodoro();
+            // Check if we're in a break
+            if (this.duration === this.settings.shortBreak * 60 * 1000 || 
+                this.duration === this.settings.longBreak * 60 * 1000) {
+                this.completeBreak();
+            } else {
+                this.completePomodoro();
+            }
             return;
         }
         
-        // Update more frequently when tab is not visible
         if (document.hidden) {
             setTimeout(() => this.updateTimer(), 1000);
         } else {
@@ -254,14 +264,6 @@ class PomodoroTimer {
         // Reset timer state
         this.pauseTimer();
         this.isRunning = false;
-        this.remainingTime = this.duration;
-        this.endTime = null;  // Add this line to reset endTime
-        this.timer = null;    // Add this line to ensure timer is cleared
-        
-        // Update UI
-        this.startBtn.textContent = 'Start';
-        this.updateDisplay();
-        this.updateCircleProgress(1);
         
         // Add points and show notification
         this.addPoints(pointsEarned);
@@ -289,10 +291,41 @@ class PomodoroTimer {
             await new Promise(resolve => setTimeout(resolve, 100));
         }
         
-        // Save the reset state
-        this.saveAllData();
+        // Handle break timer
+        if (this.settings.autoStartBreaks) {
+            // Set break duration (5 minutes for short break)
+            this.duration = this.settings.shortBreak * 60 * 1000;
+            this.remainingTime = this.duration;
+            this.endTime = null;
+            this.updateDisplay();
+            this.updateCircleProgress(1);
+            
+            // Auto start the break timer
+            setTimeout(() => {
+                this.startTimer();
+                this.isRunning = true;
+                this.startBtn.textContent = 'Pause';
+                document.title = 'Break Time!';
+            }, 1000);
+            
+            // Show break notification
+            alert('Break time started automatically!');
+        } else {
+            // Reset to focus duration if auto-start is disabled
+            this.duration = this.settings.focusDuration * 60 * 1000;
+            this.remainingTime = this.duration;
+            this.endTime = null;
+            this.updateDisplay();
+            this.updateCircleProgress(1);
+            this.startBtn.textContent = 'Start';
+            document.title = this.originalTitle;
+            
+            // Show completion alert
+            alert('Pomodoro completed! Take a break.');
+        }
         
-        alert('Pomodoro completed! Take a break.');
+        // Save the state
+        this.saveAllData();
     }
 
     reset() {
@@ -420,10 +453,17 @@ class PomodoroTimer {
             this.pointsSystem = { ...this.pointsSystem, ...parsedData.pointsSystem };
             this.tasks = { ...this.tasks, ...parsedData.tasks };
             
-            // Update duration and display
+            // Always reset to focus duration on page load
             this.duration = this.settings.focusDuration * 60 * 1000;
-            this.remainingTime = parsedData.remainingTime || this.duration;
-            this.isRunning = parsedData.isRunning || false;
+            this.remainingTime = this.duration;
+            this.isRunning = false;
+            this.endTime = null;
+            
+            // Update display to show focus duration
+            this.updateDisplay();
+            this.updateCircleProgress(1);
+            this.startBtn.textContent = 'Start';
+            document.title = this.originalTitle;
         }
     }
 
@@ -640,6 +680,33 @@ class PomodoroTimer {
 
     saveTasks() {
         localStorage.setItem('pomodoroTasks', JSON.stringify(this.tasks));
+    }
+
+    // Add a method to handle break completion
+    async completeBreak() {
+        this.pauseTimer();
+        this.isRunning = false;
+        
+        // Reset to focus duration
+        this.duration = this.settings.focusDuration * 60 * 1000;
+        this.remainingTime = this.duration;
+        this.endTime = null;
+        
+        // Update UI
+        this.updateDisplay();
+        this.updateCircleProgress(1);
+        this.startBtn.textContent = 'Start';
+        document.title = this.originalTitle;
+        
+        // Play sound if enabled
+        if (this.settings.soundEnabled) {
+            this.playSound('complete');
+        }
+        
+        alert('Break completed! Ready for next focus session?');
+        
+        // Save state
+        this.saveAllData();
     }
 }
 
