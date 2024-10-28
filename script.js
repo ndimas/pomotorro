@@ -660,3 +660,73 @@ class PomodoroTimer {
 document.addEventListener('DOMContentLoaded', () => {
     new PomodoroTimer();
 });
+
+// Add these default settings at the beginning of your script
+const DEFAULT_SETTINGS = {
+  focusDuration: 25,
+  shortBreak: 5,
+  longBreak: 15,
+  autoStartBreaks: false,
+  soundEnabled: true
+};
+
+// Add these functions to handle settings persistence
+function loadSettings() {
+  const savedSettings = localStorage.getItem('pomotorroSettings');
+  if (savedSettings) {
+    const settings = JSON.parse(savedSettings);
+    
+    // Update input values
+    document.getElementById('focusDuration').value = settings.focusDuration;
+    document.getElementById('shortBreak').value = settings.shortBreak;
+    document.getElementById('longBreak').value = settings.longBreak;
+    document.getElementById('autoStartBreaks').checked = settings.autoStartBreaks;
+    document.getElementById('soundEnabled').checked = settings.soundEnabled;
+
+    // Update timer display with loaded focus duration
+    document.querySelector('.timer-display').textContent = 
+      `${String(settings.focusDuration).padStart(2, '0')}:00`;
+  }
+}
+
+function saveSettings() {
+  const settings = {
+    focusDuration: parseInt(document.getElementById('focusDuration').value),
+    shortBreak: parseInt(document.getElementById('shortBreak').value),
+    longBreak: parseInt(document.getElementById('longBreak').value),
+    autoStartBreaks: document.getElementById('autoStartBreaks').checked,
+    soundEnabled: document.getElementById('soundEnabled').checked
+  };
+  
+  localStorage.setItem('pomotorroSettings', JSON.stringify(settings));
+  
+  // Update timer display with new focus duration
+  document.querySelector('.timer-display').textContent = 
+    `${String(settings.focusDuration).padStart(2, '0')}:00`;
+    
+  // Close the modal
+  settingsModal.classList.remove('show');
+}
+
+// Add this to your existing settings modal event listeners
+document.addEventListener('DOMContentLoaded', () => {
+  // Load settings when the page loads
+  loadSettings();
+
+  // Update your existing settings modal save button listener
+  const saveBtn = document.querySelector('.save-btn');
+  saveBtn.addEventListener('click', saveSettings);
+});
+
+// Update your existing settings modal cancel button listener
+const cancelBtn = document.querySelector('.cancel-btn');
+cancelBtn.addEventListener('click', () => {
+  // Reload the saved settings to revert any changes
+  loadSettings();
+  settingsModal.classList.remove('show');
+});
+
+// Add this to handle the case when no settings exist yet
+if (!localStorage.getItem('pomotorroSettings')) {
+  localStorage.setItem('pomotorroSettings', JSON.stringify(DEFAULT_SETTINGS));
+}
