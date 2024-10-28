@@ -27,7 +27,7 @@ body {
 .timer-card {
     background: white;
     border-radius: 25px;
-    padding: 30px 20px;
+    padding: 40px 20px 30px;
     width: 100%;
     max-width: 400px;
     box-shadow: 0 10px 20px rgba(0,0,0,0.1);
@@ -36,13 +36,94 @@ body {
 
 .points {
     position: absolute;
-    top: 20px;
+    top: -15px;
     right: 20px;
     background: var(--primary-color);
     color: white;
-    padding: 8px 16px;
-    border-radius: 20px;
+    padding: 12px 20px;
+    border-radius: 15px;
     font-weight: bold;
+    width: auto;
+    min-width: 150px;
+    box-shadow: 0 4px 10px rgba(255, 107, 107, 0.2);
+}
+
+.points-content {
+    margin-bottom: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.points-content div {
+    font-size: 14px;
+    line-height: 1.2;
+}
+
+.points-content div:first-child {
+    font-weight: 600;
+}
+
+.level-progress {
+    background: rgba(255, 255, 255, 0.3);
+    height: 3px;
+    border-radius: 1.5px;
+    overflow: hidden;
+    margin-top: 2px;
+}
+
+.level-bar {
+    height: 100%;
+    background: white;
+    transition: width 0.3s ease;
+    border-radius: 1.5px;
+}
+
+.level-up-notification,
+.points-notification {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: white;
+    padding: 15px 25px;
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    animation: slideUp 0.3s ease;
+    z-index: 1000;
+}
+
+.level-up-notification {
+    background: linear-gradient(135deg, #ff6b6b, #ff8787);
+    color: white;
+}
+
+.points-notification {
+    background: white;
+    color: var(--text-color);
+}
+
+.fade-out {
+    animation: fadeOut 0.5s ease forwards;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translate(-50%, 100%);
+        opacity: 0;
+    }
+    to {
+        transform: translate(-50%, 0);
+        opacity: 1;
+    }
+}
+
+@keyframes fadeOut {
+    to {
+        opacity: 0;
+        transform: translate(-50%, -20px);
+    }
 }
 
 .timer-circle {

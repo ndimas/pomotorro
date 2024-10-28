@@ -15,7 +15,17 @@ class PomodoroTimer {
             soundEnabled: true
         };
         
-        this.loadSettings();
+        // Initialize points system
+        this.pointsSystem = {
+            points: 0,
+            level: 1,
+            pointsToNextLevel: 100,
+            multiplier: 1,
+            streakCount: 0,
+            lastPomodoro: null
+        };
+
+        this.loadAllData();
         this.initializeElements();
         this.initializeEventListeners();
         this.updateCircleProgress(1);
@@ -49,6 +59,20 @@ class PomodoroTimer {
         const radius = circle.r.baseVal.value;
         this.circumference = radius * 2 * Math.PI;
         circle.style.strokeDasharray = `${this.circumference} ${this.circumference}`;
+        
+        // Add level display next to points
+        const pointsDiv = document.querySelector('.points');
+        pointsDiv.innerHTML = `
+            <div class="points-content">
+                <div>Level ${this.pointsSystem.level}</div>
+                <div>Points: <span id="points">${this.pointsSystem.points}</span></div>
+            </div>
+            <div class="level-progress">
+                <div class="level-bar" style="width: ${this.calculateLevelProgress()}%"></div>
+            </div>
+        `;
+        this.pointsDisplay = document.getElementById('points');
+        this.levelBar = document.querySelector('.level-bar');
     }
 
     initializeEventListeners() {
@@ -134,7 +158,94 @@ class PomodoroTimer {
         this.progressRing.style.strokeDashoffset = offset;
     }
 
+    calculateLevelProgress() {
+        const pointsInCurrentLevel = this.pointsSystem.points % this.pointsSystem.pointsToNextLevel;
+        return (pointsInCurrentLevel / this.pointsSystem.pointsToNextLevel) * 100;
+    }
+
+    updatePointsDisplay() {
+        this.pointsDisplay.textContent = this.pointsSystem.points;
+        this.levelBar.style.width = `${this.calculateLevelProgress()}%`;
+        document.querySelector('.points-content div:first-child').textContent = `Level ${this.pointsSystem.level}`;
+    }
+
+    calculatePointsEarned() {
+        let points = 20; // Base points
+
+        // Check for streak bonus
+        const now = new Date();
+        if (this.pointsSystem.lastPomodoro) {
+            const lastPomodoro = new Date(this.pointsSystem.lastPomodoro);
+            const hoursSinceLastPomodoro = (now - lastPomodoro) / (1000 * 60 * 60);
+            
+            if (hoursSinceLastPomodoro <= 1) {
+                this.pointsSystem.streakCount++;
+                points *= (1 + (this.pointsSystem.streakCount * 0.1)); // 10% bonus per streak
+            } else {
+                this.pointsSystem.streakCount = 0;
+            }
+        }
+
+        this.pointsSystem.lastPomodoro = now.toISOString();
+        return Math.round(points * this.pointsSystem.multiplier);
+    }
+
+    addPoints(points) {
+        this.pointsSystem.points += points;
+        
+        // Check for level up
+        while (this.pointsSystem.points >= this.pointsSystem.pointsToNextLevel) {
+            this.levelUp();
+        }
+        
+        this.updatePointsDisplay();
+        this.saveAllData();
+    }
+
+    levelUp() {
+        this.pointsSystem.level++;
+        this.pointsSystem.multiplier += 0.1;
+        this.pointsSystem.points -= this.pointsSystem.pointsToNextLevel;
+        this.pointsSystem.pointsToNextLevel = Math.round(this.pointsSystem.pointsToNextLevel * 1.5);
+        
+        // Show level up notification
+        this.showLevelUpNotification();
+    }
+
+    showLevelUpNotification() {
+        const notification = document.createElement('div');
+        notification.className = 'level-up-notification';
+        notification.innerHTML = `
+            <h3>🎉 Level Up!</h3>
+            <p>You reached Level ${this.pointsSystem.level}</p>
+            <p>New point multiplier: ${this.pointsSystem.multiplier.toFixed(1)}x</p>
+        `;
+        document.body.appendChild(notification);
+        
+        // Remove notification after animation
+        setTimeout(() => {
+            notification.classList.add('fade-out');
+            setTimeout(() => notification.remove(), 500);
+        }, 3000);
+    }
+
     async completePomodoro() {
+        const pointsEarned = this.calculatePointsEarned();
+        this.addPoints(pointsEarned);
+        
+        // Show points earned notification
+        const notification = document.createElement('div');
+        notification.className = 'points-notification';
+        notification.innerHTML = `
+            <p>+${pointsEarned} points</p>
+            ${this.pointsSystem.streakCount > 1 ? `<p>🔥 ${this.pointsSystem.streakCount}x streak!</p>` : ''}
+        `;
+        document.body.appendChild(notification);
+        setTimeout(() => {
+            notification.classList.add('fade-out');
+            setTimeout(() => notification.remove(), 500);
+        }, 2000);
+
         this.pauseTimer();
         this.isRunning = false;
         this.remainingTime = this.duration;
@@ -289,6 +400,28 @@ class PomodoroTimer {
             this.duration = this.settings.focusDuration * 60 * 1000;
             this.remainingTime = this.duration;
         }
+    }
+
+    loadAllData() {
+        const savedData = localStorage.getItem('pomodoroData');
+        if (savedData) {
+            const parsedData = JSON.parse(savedData);
+            this.settings = { ...this.settings, ...parsedData.settings };
+            this.pointsSystem = { ...this.pointsSystem, ...parsedData.pointsSystem };
+            this.duration = this.settings.focusDuration * 60 * 1000;
+            this.remainingTime = parsedData.remainingTime || this.duration;
+            this.isRunning = parsedData.isRunning || false;
+        }
+    }
+
+    saveAllData() {
+        const dataToSave = {
+            settings: this.settings,
+            pointsSystem: this.pointsSystem,
+            remainingTime: this.remainingTime,
+            isRunning: this.isRunning
+        };
+        localStorage.setItem('pomodoroData', JSON.stringify(dataToSave));
     }
 
     initializeAudio() {
