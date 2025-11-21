@@ -14,7 +14,7 @@ class PomodoroTimer {
             autoStartBreaks: false,
             soundEnabled: true
         };
-        
+
         // Initialize points system
         this.pointsSystem = {
             points: 0,
@@ -29,14 +29,14 @@ class PomodoroTimer {
             current: null,
             history: []
         };
-        
+
         // Initialize elements first
         this.initializeElements();
-        
+
         // Then load data and set up other functionality
         this.loadAllData();
         this.initializeEventListeners();
-        this.updateCircleProgress(1);
+        this.updateProgress(1);
         this.initializeSettingsModal();
         this.initializeAudio();
         this.initializeTaskSystem();
@@ -63,16 +63,10 @@ class PomodoroTimer {
         }
 
         this.startBtn = document.querySelector('.start-btn');
-        this.progressRing = document.querySelector('.progress-ring-circle-active');
+        this.liquidBackground = document.querySelector('.liquid-background');
         this.pointsDisplay = document.getElementById('points');
         this.navBtns = document.querySelectorAll('.nav-btn');
-        
-        // Calculate circle circumference
-        const circle = this.progressRing;
-        const radius = circle.r.baseVal.value;
-        this.circumference = radius * 2 * Math.PI;
-        circle.style.strokeDasharray = `${this.circumference} ${this.circumference}`;
-        
+
         // Add level display next to points
         const pointsDiv = document.querySelector('.points');
         pointsDiv.innerHTML = `
@@ -90,7 +84,7 @@ class PomodoroTimer {
 
     initializeEventListeners() {
         this.startBtn.addEventListener('click', () => this.toggleTimer());
-        
+
         this.navBtns.forEach(btn => {
             btn.addEventListener('click', (e) => {
                 this.navBtns.forEach(b => b.classList.remove('active'));
@@ -118,7 +112,11 @@ class PomodoroTimer {
     startTimer() {
         // Set the end time based on remaining duration
         this.endTime = Date.now() + this.remainingTime;
-        
+
+        if (this.liquidBackground) {
+            this.liquidBackground.classList.add('running');
+        }
+
         this.timer = requestAnimationFrame(this.updateTimer.bind(this));
     }
 
@@ -129,11 +127,11 @@ class PomodoroTimer {
         this.remainingTime = Math.max(0, this.endTime - currentTime);
 
         this.updateDisplay();
-        this.updateCircleProgress(this.remainingTime / this.duration);
+        this.updateProgress(this.remainingTime / this.duration);
 
         if (this.remainingTime === 0) {
             // Check if we're in a break
-            if (this.duration === this.settings.shortBreak * 60 * 1000 || 
+            if (this.duration === this.settings.shortBreak * 60 * 1000 ||
                 this.duration === this.settings.longBreak * 60 * 1000) {
                 this.completeBreak();
             } else {
@@ -141,7 +139,7 @@ class PomodoroTimer {
             }
             return;
         }
-        
+
         if (document.hidden) {
             setTimeout(() => this.updateTimer(), 1000);
         } else {
@@ -150,6 +148,10 @@ class PomodoroTimer {
     }
 
     pauseTimer() {
+        if (this.liquidBackground) {
+            this.liquidBackground.classList.remove('running');
+        }
+
         if (this.timer) {
             cancelAnimationFrame(this.timer);
             this.timer = null;
@@ -161,24 +163,25 @@ class PomodoroTimer {
         const minutes = Math.floor(totalSeconds / 60);
         const seconds = totalSeconds % 60;
         const timeString = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-        
+
         // Update timer display
         this.timerDisplay.textContent = timeString;
-        
+
         // Update page title with current task if exists
         let title = this.originalTitle;
         if (this.tasks.current && this.tasks.current.title) {
             title = this.tasks.current.title;
         }
-        
-        document.title = this.isRunning 
+
+        document.title = this.isRunning
             ? `(${timeString}) ${title}`
             : title;
     }
 
-    updateCircleProgress(percent) {
-        const offset = this.circumference - (percent * this.circumference);
-        this.progressRing.style.strokeDashoffset = offset;
+    updateProgress(percent) {
+        if (this.liquidBackground) {
+            this.liquidBackground.style.height = `${percent * 100}%`;
+        }
     }
 
     calculateLevelProgress() {
@@ -200,7 +203,7 @@ class PomodoroTimer {
         if (this.pointsSystem.lastPomodoro) {
             const lastPomodoro = new Date(this.pointsSystem.lastPomodoro);
             const hoursSinceLastPomodoro = (now - lastPomodoro) / (1000 * 60 * 60);
-            
+
             if (hoursSinceLastPomodoro <= 1) {
                 this.pointsSystem.streakCount++;
                 points *= (1 + (this.pointsSystem.streakCount * 0.1)); // 10% bonus per streak
@@ -215,12 +218,12 @@ class PomodoroTimer {
 
     addPoints(points) {
         this.pointsSystem.points += points;
-        
+
         // Check for level up
         while (this.pointsSystem.points >= this.pointsSystem.pointsToNextLevel) {
             this.levelUp();
         }
-        
+
         this.updatePointsDisplay();
         this.saveAllData();
     }
@@ -230,7 +233,7 @@ class PomodoroTimer {
         this.pointsSystem.multiplier += 0.1;
         this.pointsSystem.points -= this.pointsSystem.pointsToNextLevel;
         this.pointsSystem.pointsToNextLevel = Math.round(this.pointsSystem.pointsToNextLevel * 1.5);
-        
+
         // Show level up notification
         this.showLevelUpNotification();
     }
@@ -244,7 +247,7 @@ class PomodoroTimer {
             <p>New point multiplier: ${this.pointsSystem.multiplier.toFixed(1)}x</p>
         `;
         document.body.appendChild(notification);
-        
+
         // Remove notification after animation
         setTimeout(() => {
             notification.classList.add('fade-out');
@@ -260,14 +263,14 @@ class PomodoroTimer {
         } else {
             pointsEarned = this.calculatePointsEarned();
         }
-        
+
         // Reset timer state
         this.pauseTimer();
         this.isRunning = false;
-        
+
         // Add points and show notification
         this.addPoints(pointsEarned);
-        
+
         const notification = document.createElement('div');
         notification.className = 'points-notification';
         notification.innerHTML = `
@@ -290,7 +293,7 @@ class PomodoroTimer {
             this.playSound('complete');
             await new Promise(resolve => setTimeout(resolve, 100));
         }
-        
+
         // Handle break timer
         if (this.settings.autoStartBreaks) {
             // Set break duration (5 minutes for short break)
@@ -298,8 +301,8 @@ class PomodoroTimer {
             this.remainingTime = this.duration;
             this.endTime = null;
             this.updateDisplay();
-            this.updateCircleProgress(1);
-            
+            this.updateProgress(1);
+
             // Auto start the break timer
             setTimeout(() => {
                 this.startTimer();
@@ -307,7 +310,7 @@ class PomodoroTimer {
                 this.startBtn.textContent = 'Pause';
                 document.title = 'Break Time!';
             }, 1000);
-            
+
             // Show break notification
             alert('Break time started automatically!');
         } else {
@@ -316,14 +319,14 @@ class PomodoroTimer {
             this.remainingTime = this.duration;
             this.endTime = null;
             this.updateDisplay();
-            this.updateCircleProgress(1);
+            this.updateProgress(1);
             this.startBtn.textContent = 'Start';
             document.title = this.originalTitle;
-            
+
             // Show completion alert
             alert('Pomodoro completed! Take a break.');
         }
-        
+
         // Save the state
         this.saveAllData();
     }
@@ -334,7 +337,7 @@ class PomodoroTimer {
         this.remainingTime = this.duration;
         this.startBtn.textContent = 'Start';
         this.updateDisplay();
-        this.updateCircleProgress(1);
+        this.updateProgress(1);
         document.title = this.originalTitle; // Reset title
     }
 
@@ -342,12 +345,12 @@ class PomodoroTimer {
         // First verify all elements exist
         this.settingsModal = document.getElementById('settingsModal');
         this.settingsBtn = document.querySelector('.settings-btn');
-        
+
         if (!this.settingsModal || !this.settingsBtn) {
             console.error('Settings modal elements not found');
             return;
         }
-        
+
         // Settings inputs
         this.focusDurationInput = document.getElementById('focusDuration');
         this.shortBreakInput = document.getElementById('shortBreak');
@@ -367,7 +370,7 @@ class PomodoroTimer {
             console.log('Settings button clicked'); // Debug log
             this.openSettings();
         });
-        
+
         const closeBtn = this.settingsModal.querySelector('.close-btn');
         const cancelBtn = this.settingsModal.querySelector('.cancel-btn');
         const saveBtn = this.settingsModal.querySelector('.save-btn');
@@ -387,13 +390,13 @@ class PomodoroTimer {
             const input = picker.querySelector('input');
             const minusBtn = picker.querySelector('.minus');
             const plusBtn = picker.querySelector('.plus');
-            
+
             if (minusBtn) {
                 minusBtn.addEventListener('click', () => {
                     input.value = Math.max(parseInt(input.value) - 1, parseInt(input.min));
                 });
             }
-            
+
             if (plusBtn) {
                 plusBtn.addEventListener('click', () => {
                     input.value = Math.min(parseInt(input.value) + 1, parseInt(input.max));
@@ -436,12 +439,12 @@ class PomodoroTimer {
         this.duration = this.settings.focusDuration * 60 * 1000;
         this.remainingTime = this.duration;
         this.endTime = null;
-        
+
         // Save to the single data store
         this.saveAllData();
-        
+
         this.updateDisplay();
-        this.updateCircleProgress(1);
+        this.updateProgress(1);
         this.closeSettings();
     }
 
@@ -452,16 +455,16 @@ class PomodoroTimer {
             this.settings = { ...this.settings, ...parsedData.settings };
             this.pointsSystem = { ...this.pointsSystem, ...parsedData.pointsSystem };
             this.tasks = { ...this.tasks, ...parsedData.tasks };
-            
+
             // Always reset to focus duration on page load
             this.duration = this.settings.focusDuration * 60 * 1000;
             this.remainingTime = this.duration;
             this.isRunning = false;
             this.endTime = null;
-            
+
             // Update display to show focus duration
             this.updateDisplay();
-            this.updateCircleProgress(1);
+            this.updateProgress(1);
             this.startBtn.textContent = 'Start';
             document.title = this.originalTitle;
         }
@@ -481,7 +484,7 @@ class PomodoroTimer {
     initializeAudio() {
         // Create audio context
         this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        
+
         // Define our sounds
         this.sounds = {
             start: {
@@ -512,17 +515,17 @@ class PomodoroTimer {
 
     playSound(soundName) {
         if (!this.settings.soundEnabled) return;
-        
+
         const sound = this.sounds[soundName];
         if (!sound || !sound.buffer) return;
 
         // Create buffer source
         const source = this.audioContext.createBufferSource();
         source.buffer = sound.buffer;
-        
+
         // Connect to destination (speakers)
         source.connect(this.audioContext.destination);
-        
+
         // Play the sound
         source.start(0);
     }
@@ -534,6 +537,17 @@ class PomodoroTimer {
         // Task input handler
         this.taskInput.addEventListener('change', (e) => {
             this.setCurrentTask(e.target.value);
+        });
+
+        // Add Enter key support to start timer
+        this.taskInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                this.setCurrentTask(this.taskInput.value);
+                if (!this.isRunning) {
+                    this.toggleTimer();
+                }
+                this.taskInput.blur(); // Optional: remove focus after starting
+            }
         });
 
         // Initial render of task history
@@ -549,7 +563,7 @@ class PomodoroTimer {
             duration: 0,
             completed: false
         };
-        
+
         this.saveTasks();
     }
 
@@ -560,12 +574,12 @@ class PomodoroTimer {
         task.completed = true;
         task.endTime = new Date().toISOString();
         task.duration = this.settings.focusDuration; // in minutes
-        
+
         // Calculate bonus points (25% extra for completing with a task)
         const basePoints = this.calculatePointsEarned();
         const taskBonus = Math.round(basePoints * 0.25);
         const totalPoints = basePoints + taskBonus;
-        
+
         // Store the points with the task
         task.points = totalPoints;  // Add this line to store points
 
@@ -573,7 +587,7 @@ class PomodoroTimer {
         this.tasks.history.unshift(task);
         this.tasks.current = null;
         this.taskInput.value = '';
-        
+
         // Save and render
         this.saveTasks();
         this.renderTaskHistory();
@@ -620,7 +634,7 @@ class PomodoroTimer {
 
     renderTaskGroup(tasks, title) {
         if (!tasks || tasks.length === 0) return '';
-        
+
         return `
             <div class="task-group">
                 <h4 class="task-group-title">${title}</h4>
@@ -650,7 +664,7 @@ class PomodoroTimer {
 
         this.taskList.parentElement.style.display = 'block';
         const groupedTasks = this.groupTasksByDate(this.tasks.history);
-        
+
         let html = '';
 
         // Today's tasks
@@ -686,25 +700,25 @@ class PomodoroTimer {
     async completeBreak() {
         this.pauseTimer();
         this.isRunning = false;
-        
+
         // Reset to focus duration
         this.duration = this.settings.focusDuration * 60 * 1000;
         this.remainingTime = this.duration;
         this.endTime = null;
-        
+
         // Update UI
         this.updateDisplay();
-        this.updateCircleProgress(1);
+        this.updateProgress(1);
         this.startBtn.textContent = 'Start';
         document.title = this.originalTitle;
-        
+
         // Play sound if enabled
         if (this.settings.soundEnabled) {
             this.playSound('complete');
         }
-        
+
         alert('Break completed! Ready for next focus session?');
-        
+
         // Save state
         this.saveAllData();
     }
@@ -714,74 +728,4 @@ class PomodoroTimer {
 document.addEventListener('DOMContentLoaded', () => {
     new PomodoroTimer();
 });
-
-// Add these default settings at the beginning of your script
-const DEFAULT_SETTINGS = {
-  focusDuration: 25,
-  shortBreak: 5,
-  longBreak: 15,
-  autoStartBreaks: false,
-  soundEnabled: true
-};
-
-// Add these functions to handle settings persistence
-function loadSettings() {
-  const savedSettings = localStorage.getItem('pomotorroSettings');
-  if (savedSettings) {
-    const settings = JSON.parse(savedSettings);
-    
-    // Update input values
-    document.getElementById('focusDuration').value = settings.focusDuration;
-    document.getElementById('shortBreak').value = settings.shortBreak;
-    document.getElementById('longBreak').value = settings.longBreak;
-    document.getElementById('autoStartBreaks').checked = settings.autoStartBreaks;
-    document.getElementById('soundEnabled').checked = settings.soundEnabled;
-
-    // Update timer display with loaded focus duration
-    document.querySelector('.timer-display').textContent = 
-      `${String(settings.focusDuration).padStart(2, '0')}:00`;
-  }
-}
-
-function saveSettings() {
-  const settings = {
-    focusDuration: parseInt(document.getElementById('focusDuration').value),
-    shortBreak: parseInt(document.getElementById('shortBreak').value),
-    longBreak: parseInt(document.getElementById('longBreak').value),
-    autoStartBreaks: document.getElementById('autoStartBreaks').checked,
-    soundEnabled: document.getElementById('soundEnabled').checked
-  };
-  
-  localStorage.setItem('pomotorroSettings', JSON.stringify(settings));
-  
-  // Update timer display with new focus duration
-  document.querySelector('.timer-display').textContent = 
-    `${String(settings.focusDuration).padStart(2, '0')}:00`;
-    
-  // Close the modal
-  settingsModal.classList.remove('show');
-}
-
-// Add this to your existing settings modal event listeners
-document.addEventListener('DOMContentLoaded', () => {
-  // Load settings when the page loads
-  loadSettings();
-
-  // Update your existing settings modal save button listener
-  const saveBtn = document.querySelector('.save-btn');
-  saveBtn.addEventListener('click', saveSettings);
-});
-
-// Update your existing settings modal cancel button listener
-const cancelBtn = document.querySelector('.cancel-btn');
-cancelBtn.addEventListener('click', () => {
-  // Reload the saved settings to revert any changes
-  loadSettings();
-  settingsModal.classList.remove('show');
-});
-
-// Add this to handle the case when no settings exist yet
-if (!localStorage.getItem('pomotorroSettings')) {
-  localStorage.setItem('pomotorroSettings', JSON.stringify(DEFAULT_SETTINGS));
-}
 

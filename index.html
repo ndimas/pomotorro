@@ -4,17 +4,26 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  
+
   <!-- Targeted SEO Meta Tags -->
   <title>Pomotorro: Productivity Timer for Founders | Time Management Tool</title>
-  <meta name="description" content="A powerful Pomodoro timer designed specifically for busy founders to maximize focus, boost productivity, and manage time effectively. Perfect for entrepreneurs and startup leaders.">
-  <meta name="keywords" content="pomodoro timer, productivity for founders, time management, startup productivity, entrepreneur focus tool">
-  
+  <meta name="description"
+    content="A powerful Pomodoro timer designed specifically for busy founders to maximize focus, boost productivity, and manage time effectively. Perfect for entrepreneurs and startup leaders.">
+  <meta name="keywords"
+    content="pomodoro timer, productivity for founders, time management, startup productivity, entrepreneur focus tool">
+
   <!-- Open Graph / Social Media Tags -->
   <meta property="og:title" content="Pomotorro: Productivity Timer for Founders">
-  <meta property="og:description" content="Boost your productivity with a Pomodoro timer tailored for busy founders and entrepreneurs.">
+  <meta property="og:description"
+    content="Boost your productivity with a Pomodoro timer tailored for busy founders and entrepreneurs.">
   <meta property="og:type" content="website">
-  
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@500;700&display=swap"
+    rel="stylesheet">
+
   <!-- Structured Data - Organization -->
   <script type="application/ld+json">
   {
@@ -47,30 +56,28 @@
     <div class="timer-card">
       <div class="points">Points: <span id="points">120</span></div>
 
-      <div class="timer-circle">
-        <div class="tomato">
-          <img src="pomotorro.png" alt="Pomotorro" class="tomato-img">
+      <div class="liquid-container">
+        <div class="liquid-background">
+          <div class="wave"></div>
+          <div class="wave"></div>
         </div>
-        <svg class="progress-ring" width="300" height="300">
-          <circle class="progress-ring-circle" stroke-width="8" stroke="#e9ecef" fill="transparent" r="140" cx="150"
-            cy="150" />
-          <circle class="progress-ring-circle-active" stroke-width="8" stroke="#ff6b6b" fill="transparent" r="140"
-            cx="150" cy="150" />
-        </svg>
+      </div>
+
+      <div class="tomato-floating">
+        <img src="pomotorro.png" alt="Pomotorro" class="tomato-img">
       </div>
 
       <div class="timer-display">25:00</div>
-      <button class="start-btn">Start</button>
+
+      <div class="action-bar">
+        <div class="task-input-wrapper">
+          <input type="text" id="taskInput" placeholder="What are you working on?" class="task-input">
+        </div>
+        <button class="start-btn">Start</button>
+      </div>
 
       <!-- Add this right after the timer display and before the start button -->
       <div class="task-section">
-        <div class="current-task">
-          <input type="text" 
-                 id="taskInput" 
-                 placeholder="What are you working on?" 
-                 class="task-input">
-        </div>
-        
         <div class="task-history">
           <h3>Recent Tasks</h3>
           <div class="task-list" id="taskList">
@@ -84,7 +91,7 @@
       <nav class="bottom-nav">
         <button class="nav-btn active" data-tab="timeline">Timer</button>
       </nav>
-      
+
       <a href="mailto:contact@why.sh?subject=Pomotorro%20Feedback" class="feedback-btn">
         Send Feedback
       </a>
