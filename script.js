@@ -63,6 +63,7 @@ class PomodoroTimer {
         }
 
         this.startBtn = document.querySelector('.start-btn');
+        this.resetBtn = document.querySelector('.reset-btn');
         this.liquidBackground = document.querySelector('.liquid-background');
         this.pointsDisplay = document.getElementById('points');
         this.navBtns = document.querySelectorAll('.nav-btn');
@@ -84,6 +85,7 @@ class PomodoroTimer {
 
     initializeEventListeners() {
         this.startBtn.addEventListener('click', () => this.toggleTimer());
+        this.resetBtn.addEventListener('click', () => this.resetTimer());
 
         this.navBtns.forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -96,7 +98,8 @@ class PomodoroTimer {
     toggleTimer() {
         if (this.isRunning) {
             this.pauseTimer();
-            this.startBtn.textContent = 'Start';
+            this.startBtn.textContent = 'Resume';
+            this.resetBtn.classList.add('show');
         } else {
             // Resume audio context if it was suspended
             if (this.audioContext.state === 'suspended') {
@@ -104,6 +107,7 @@ class PomodoroTimer {
             }
             this.startTimer();
             this.startBtn.textContent = 'Pause';
+            this.resetBtn.classList.remove('show');
             this.playSound('start');
         }
         this.isRunning = !this.isRunning;
@@ -336,9 +340,16 @@ class PomodoroTimer {
         this.isRunning = false;
         this.remainingTime = this.duration;
         this.startBtn.textContent = 'Start';
+        this.resetBtn.classList.remove('show');
         this.updateDisplay();
         this.updateProgress(1);
         document.title = this.originalTitle; // Reset title
+    }
+
+    resetTimer() {
+        if (confirm('Are you sure you want to reset the timer?')) {
+            this.reset();
+        }
     }
 
     initializeSettingsModal() {
