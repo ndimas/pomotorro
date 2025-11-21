@@ -423,17 +423,28 @@ body {
 
 .task-history h3 {
     font-family: 'Outfit', sans-serif;
+    margin-bottom: 20px;
     font-size: 1.1rem;
-    margin-bottom: 15px;
     color: var(--text-color);
     opacity: 0.8;
+    padding-left: 10px;
+}
+
+.task-group-title {
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.95rem;
+    color: #636e72;
+    margin: 15px 0 10px 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .task-item {
     background: rgba(255, 255, 255, 0.8);
-    padding: 16px 20px;
-    border-radius: 16px;
-    margin-bottom: 12px;
+    padding: 18px 24px;
+    border-radius: 20px;
+    margin-bottom: 16px;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -821,27 +832,51 @@ input:checked+.slider:before {
 }
 
 /* Responsive */
+/* Responsive */
 @media (max-width: 480px) {
     .timer-card {
-        padding: 30px 20px;
-        max-width: 100%;
+        padding: 40px 20px 30px;
+        border-radius: 0;
+        min-height: 100vh;
+        justify-content: center;
     }
 
-    .timer-circle {
-        width: 240px;
-        height: 240px;
+    .container {
+        padding: 0;
     }
 
-    .tomato {
-        width: 110px;
-        height: 110px;
+    .tomato-floating {
+        width: 130px;
+        height: 130px;
+        margin: 20px auto;
     }
 
     .timer-display {
-        font-size: 3.5rem;
+        font-size: 4rem;
+        margin-bottom: 25px;
+    }
+
+    .action-bar {
+        padding: 5px;
+        margin-bottom: 25px;
+    }
+
+    .task-input {
+        font-size: 0.95rem;
+        padding: 10px 15px;
     }
 
     .start-btn {
-        width: 100%;
+        padding: 10px 20px;
+        font-size: 0.9rem;
+    }
+
+    .task-history {
+        max-height: 250px;
+        padding: 20px;
+    }
+
+    .task-item {
+        padding: 15px 20px;
     }
 }

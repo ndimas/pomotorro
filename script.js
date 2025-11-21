@@ -22,7 +22,9 @@ class PomodoroTimer {
             pointsToNextLevel: 100,
             multiplier: 1,
             streakCount: 0,
-            lastPomodoro: null
+            streakCount: 0,
+            lastPomodoro: null,
+            sessionsSinceLongBreak: 0
         };
 
         this.tasks = {
@@ -101,6 +103,11 @@ class PomodoroTimer {
             this.startBtn.textContent = 'Resume';
             this.resetBtn.classList.add('show');
         } else {
+            // Capture current task input if set
+            if (this.taskInput && this.taskInput.value) {
+                this.setCurrentTask(this.taskInput.value);
+            }
+
             // Resume audio context if it was suspended
             if (this.audioContext.state === 'suspended') {
                 this.audioContext.resume();
@@ -299,36 +306,39 @@ class PomodoroTimer {
         }
 
         // Handle break timer
-        if (this.settings.autoStartBreaks) {
-            // Set break duration (5 minutes for short break)
-            this.duration = this.settings.shortBreak * 60 * 1000;
-            this.remainingTime = this.duration;
-            this.endTime = null;
-            this.updateDisplay();
-            this.updateProgress(1);
+        this.pointsSystem.sessionsSinceLongBreak++;
+        const isLongBreak = this.pointsSystem.sessionsSinceLongBreak >= 4;
 
+        if (isLongBreak) {
+            this.duration = this.settings.longBreak * 60 * 1000;
+            this.pointsSystem.sessionsSinceLongBreak = 0; // Reset counter
+        } else {
+            this.duration = this.settings.shortBreak * 60 * 1000;
+        }
+
+        this.remainingTime = this.duration;
+        this.endTime = null;
+        this.updateDisplay();
+        this.updateProgress(1);
+
+        if (this.settings.autoStartBreaks) {
             // Auto start the break timer
             setTimeout(() => {
                 this.startTimer();
                 this.isRunning = true;
                 this.startBtn.textContent = 'Pause';
-                document.title = 'Break Time!';
+                document.title = isLongBreak ? 'Long Break!' : 'Short Break!';
             }, 1000);
 
             // Show break notification
-            alert('Break time started automatically!');
+            alert(isLongBreak ? 'Long Break started automatically!' : 'Short Break started automatically!');
         } else {
-            // Reset to focus duration if auto-start is disabled
-            this.duration = this.settings.focusDuration * 60 * 1000;
-            this.remainingTime = this.duration;
-            this.endTime = null;
-            this.updateDisplay();
-            this.updateProgress(1);
-            this.startBtn.textContent = 'Start';
-            document.title = this.originalTitle;
+            // Manual start
+            this.startBtn.textContent = 'Start Break';
+            document.title = isLongBreak ? 'Long Break Ready' : 'Short Break Ready';
 
             // Show completion alert
-            alert('Pomodoro completed! Take a break.');
+            alert(isLongBreak ? 'Pomodoro completed! Time for a Long Break.' : 'Pomodoro completed! Time for a Short Break.');
         }
 
         // Save the state
@@ -646,20 +656,29 @@ class PomodoroTimer {
     renderTaskGroup(tasks, title) {
         if (!tasks || tasks.length === 0) return '';
 
+        const isToday = title === 'Today';
+
         return `
             <div class="task-group">
                 <h4 class="task-group-title">${title}</h4>
-                ${tasks.map(task => `
+                ${tasks.map(task => {
+            const date = new Date(task.endTime);
+            const timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const dateString = date.toLocaleDateString();
+            const displayDate = isToday ? timeString : dateString;
+
+            return `
                     <div class="task-item">
                         <div class="task-item-left">
                             <div class="task-title">${task.title}</div>
                             <div class="task-meta">
-                                ${task.duration}min • ${new Date(task.endTime).toLocaleDateString()}
+                                ${task.duration}min • ${displayDate}
                             </div>
                         </div>
                         <div class="task-points">+${task.points || 0}pts</div>
                     </div>
-                `).join('')}
+                    `;
+        }).join('')}
             </div>
         `;
     }
