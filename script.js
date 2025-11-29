@@ -41,6 +41,7 @@ class PomodoroTimer {
         this.updateProgress(1);
         this.initializeSettingsModal();
         this.initializeAudio();
+        this.initializeAudio();
         this.initializeTaskSystem();
 
         // Add visibility change handler
@@ -488,6 +489,9 @@ class PomodoroTimer {
             this.updateProgress(1);
             this.startBtn.textContent = 'Start';
             document.title = this.originalTitle;
+
+            // Update points display
+            this.updatePointsDisplay();
         }
     }
 
@@ -758,4 +762,3 @@ class PomodoroTimer {
 document.addEventListener('DOMContentLoaded', () => {
     new PomodoroTimer();
 });
-
