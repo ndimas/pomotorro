@@ -49,6 +49,7 @@
   <noscript><img src="https://queue.simpleanalyticscdn.com/noscript.gif" alt=""
       referrerpolicy="no-referrer-when-downgrade" /></noscript>
   <script defer src="https://cloud.umami.is/script.js" data-website-id="2be53e5c-106b-46a3-8e1b-22f2b6da0fba"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
 <body>
@@ -87,7 +88,10 @@
         </div>
       </div>
 
-      <button class="settings-btn">⚙ Settings</button>
+      <div class="button-group">
+        <button class="settings-btn">⚙ Settings</button>
+        <button class="login-btn" id="loginBtn">Log In</button>
+      </div>
 
       <nav class="bottom-nav">
         <button class="nav-btn active" data-tab="timeline">Timer</button>
@@ -157,6 +161,33 @@
         <div class="settings-footer">
           <button class="cancel-btn">Cancel</button>
           <button class="save-btn">Save Changes</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Login Modal -->
+    <div class="settings-modal" id="loginModal">
+      <div class="settings-content login-content">
+        <div class="settings-header">
+          <h2>👋 Welcome Back</h2>
+          <button class="close-btn">&times;</button>
+        </div>
+
+        <div class="settings-body">
+          <div class="auth-form">
+            <div class="form-group">
+              <label>Email</label>
+              <input type="email" id="emailInput" placeholder="you@example.com">
+            </div>
+            <div class="form-group">
+              <label>Password</label>
+              <input type="password" id="passwordInput" placeholder="••••••••">
+            </div>
+            <div class="auth-error" id="authError"></div>
+            <button class="primary-btn" id="loginSubmitBtn">Log In</button>
+            <div class="auth-divider">or</div>
+            <button class="secondary-btn" id="signupSubmitBtn">Create Account</button>
+          </div>
         </div>
       </div>
     </div>

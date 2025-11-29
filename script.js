@@ -1,3 +1,166 @@
+const SUPABASE_URL = 'https://vdagjbbpxtrjtpldixeg.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZkYWdqYmJweHRyanRwbGRpeGVnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM5NzIzMzYsImV4cCI6MjA3OTU0ODMzNn0.D_EfhnLhfrThh_C2rveK2dzHefQvJpjT_ISc-j400Mk';
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+class AuthManager {
+    constructor(timer) {
+        this.timer = timer;
+        this.user = null;
+        this.initializeElements();
+        this.initializeEventListeners();
+        this.checkUser();
+    }
+
+    initializeElements() {
+        this.loginBtn = document.getElementById('loginBtn');
+        this.loginModal = document.getElementById('loginModal');
+        this.emailInput = document.getElementById('emailInput');
+        this.passwordInput = document.getElementById('passwordInput');
+        this.loginSubmitBtn = document.getElementById('loginSubmitBtn');
+        this.signupSubmitBtn = document.getElementById('signupSubmitBtn');
+        this.authError = document.getElementById('authError');
+
+        // Close button for modal
+        if (this.loginModal) {
+            this.closeBtn = this.loginModal.querySelector('.close-btn');
+        }
+    }
+
+    initializeEventListeners() {
+        if (this.loginBtn) {
+            this.loginBtn.addEventListener('click', () => {
+                if (this.user) {
+                    this.signOut();
+                } else {
+                    this.openModal();
+                }
+            });
+        }
+
+        if (this.closeBtn) {
+            this.closeBtn.addEventListener('click', () => this.closeModal());
+        }
+
+        if (this.loginModal) {
+            this.loginModal.addEventListener('click', (e) => {
+                if (e.target === this.loginModal) this.closeModal();
+            });
+        }
+
+        if (this.loginSubmitBtn) {
+            this.loginSubmitBtn.addEventListener('click', () => this.signIn());
+        }
+
+        if (this.signupSubmitBtn) {
+            this.signupSubmitBtn.addEventListener('click', () => this.signUp());
+        }
+    }
+
+    async checkUser() {
+        // Check for errors in URL (e.g. from email link)
+        this.checkUrlForErrors();
+
+        const { data: { session } } = await supabase.auth.getSession();
+        this.handleAuthStateChange(session);
+
+        supabase.auth.onAuthStateChange((_event, session) => {
+            this.handleAuthStateChange(session);
+        });
+    }
+
+    checkUrlForErrors() {
+        const hash = window.location.hash;
+        if (hash && hash.includes('error=')) {
+            const params = new URLSearchParams(hash.substring(1)); // remove #
+            const error = params.get('error');
+            const errorDescription = params.get('error_description');
+
+            if (error) {
+                this.openModal();
+                this.authError.textContent = errorDescription ? decodeURIComponent(errorDescription.replace(/\+/g, ' ')) : 'Authentication error';
+                this.authError.style.color = 'red';
+
+                // Clear the hash without reloading
+                history.replaceState(null, null, ' ');
+            }
+        }
+    }
+
+    handleAuthStateChange(session) {
+        this.user = session?.user || null;
+
+        if (this.user) {
+            this.loginBtn.textContent = 'Log Out';
+            this.timer.onLogin(this.user);
+        } else {
+            this.loginBtn.textContent = 'Log In';
+            this.timer.onLogout();
+        }
+    }
+
+    openModal() {
+        this.loginModal.classList.add('show');
+        this.authError.textContent = '';
+    }
+
+    closeModal() {
+        this.loginModal.classList.remove('show');
+        this.emailInput.value = '';
+        this.passwordInput.value = '';
+        this.authError.textContent = '';
+    }
+
+    async signIn() {
+        const email = this.emailInput.value;
+        const password = this.passwordInput.value;
+
+        if (!email || !password) {
+            this.authError.textContent = 'Please enter email and password';
+            return;
+        }
+
+        this.loginSubmitBtn.textContent = 'Logging in...';
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        this.loginSubmitBtn.textContent = 'Log In';
+
+        if (error) {
+            this.authError.textContent = error.message;
+        } else {
+            this.closeModal();
+        }
+    }
+
+    async signUp() {
+        const email = this.emailInput.value;
+        const password = this.passwordInput.value;
+
+        if (!email || !password) {
+            this.authError.textContent = 'Please enter email and password';
+            return;
+        }
+
+        this.signupSubmitBtn.textContent = 'Creating...';
+        const { data, error } = await supabase.auth.signUp({ email, password });
+        this.signupSubmitBtn.textContent = 'Create Account';
+
+        if (error) {
+            this.authError.textContent = error.message;
+        } else if (data.session) {
+            this.authError.textContent = 'Account created! You are now logged in.';
+            this.authError.style.color = 'green';
+            setTimeout(() => this.closeModal(), 1500);
+        } else if (data.user) {
+            this.authError.textContent = 'Account created! Please check your email to confirm.';
+            this.authError.style.color = 'orange';
+            // Don't close modal immediately so they can see the message
+        }
+    }
+
+    async signOut() {
+        await supabase.auth.signOut();
+    }
+}
+
 class PomodoroTimer {
     constructor() {
         this.duration = 25 * 60 * 1000; // 25 minutes in milliseconds
@@ -41,8 +204,10 @@ class PomodoroTimer {
         this.updateProgress(1);
         this.initializeSettingsModal();
         this.initializeAudio();
-        this.initializeAudio();
         this.initializeTaskSystem();
+
+        // Initialize Auth Manager
+        this.authManager = new AuthManager(this);
 
         // Add visibility change handler
         document.addEventListener('visibilitychange', () => {
@@ -237,7 +402,85 @@ class PomodoroTimer {
         }
 
         this.updatePointsDisplay();
+        this.updatePointsDisplay();
         this.saveAllData();
+
+        // Sync points to Supabase if logged in
+        if (this.authManager && this.authManager.user) {
+            this.syncPointsToSupabase();
+        }
+    }
+
+    async syncPointsToSupabase() {
+        if (!this.authManager.user) return;
+
+        const updates = {
+            id: this.authManager.user.id,
+            points: this.pointsSystem.points,
+            level: this.pointsSystem.level,
+            points_to_next_level: this.pointsSystem.pointsToNextLevel,
+            multiplier: this.pointsSystem.multiplier,
+            streak_count: this.pointsSystem.streakCount,
+            last_pomodoro: this.pointsSystem.lastPomodoro,
+            updated_at: new Date()
+        };
+
+        const { error } = await supabase
+            .from('profiles')
+            .upsert(updates);
+
+        if (error) console.error('Error syncing points:', error);
+    }
+
+    async onLogin(user) {
+        // Fetch user profile
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .single();
+
+        if (data) {
+            // Merge or overwrite local data with cloud data
+            // For now, let's trust cloud data if it has more points, or just take cloud data
+            // Actually, let's just take cloud data to ensure sync across devices
+            this.pointsSystem = {
+                points: data.points || 0,
+                level: data.level || 1,
+                pointsToNextLevel: data.points_to_next_level || 100,
+                multiplier: data.multiplier || 1.0,
+                streakCount: data.streak_count || 0,
+                lastPomodoro: data.last_pomodoro,
+                sessionsSinceLongBreak: this.pointsSystem.sessionsSinceLongBreak // Keep local session state
+            };
+
+            this.updatePointsDisplay();
+            this.saveAllData();
+
+            // Show welcome notification
+            this.showNotification(`Welcome back! Loaded ${this.pointsSystem.points} points.`);
+        } else {
+            // New user or no profile, create one with current local data
+            this.syncPointsToSupabase();
+        }
+    }
+
+    onLogout() {
+        // Optional: clear data or keep it?
+        // Let's keep it for now, but maybe we should reset to default?
+        // For a better UX, maybe we just keep the current state but it's no longer syncing.
+        this.showNotification('Logged out. Progress will be saved locally.');
+    }
+
+    showNotification(message) {
+        const notification = document.createElement('div');
+        notification.className = 'points-notification';
+        notification.innerHTML = `<p>${message}</p>`;
+        document.body.appendChild(notification);
+        setTimeout(() => {
+            notification.classList.add('fade-out');
+            setTimeout(() => notification.remove(), 500);
+        }, 3000);
     }
 
     levelUp() {
@@ -617,7 +860,26 @@ class PomodoroTimer {
         this.saveTasks();
         this.renderTaskHistory();
 
+        // Save to Supabase
+        this.saveTaskToSupabase(task);
+
         return totalPoints;
+    }
+
+    async saveTaskToSupabase(task) {
+        if (!this.authManager || !this.authManager.user) return;
+
+        const { error } = await supabase
+            .from('pomodoro_sessions')
+            .insert({
+                user_id: this.authManager.user.id,
+                task_name: task.title,
+                duration: task.duration,
+                completed: true,
+                created_at: task.endTime
+            });
+
+        if (error) console.error('Error saving task:', error);
     }
 
     // Add these helper functions
