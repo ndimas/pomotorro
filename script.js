@@ -61,10 +61,12 @@ class AuthManager {
         this.checkUrlForErrors();
 
         const { data: { session } } = await supabase.auth.getSession();
-        this.handleAuthStateChange(session);
+        this.handleAuthStateChange(session, true);
 
-        supabase.auth.onAuthStateChange((_event, session) => {
-            this.handleAuthStateChange(session);
+        supabase.auth.onAuthStateChange((event, session) => {
+            // Treat INITIAL_SESSION as an initial check to prevent "Logged out" notification
+            const isInitial = event === 'INITIAL_SESSION';
+            this.handleAuthStateChange(session, isInitial);
         });
     }
 
@@ -86,7 +88,7 @@ class AuthManager {
         }
     }
 
-    handleAuthStateChange(session) {
+    handleAuthStateChange(session, isInitial = false) {
         this.user = session?.user || null;
 
         if (this.user) {
@@ -94,7 +96,9 @@ class AuthManager {
             this.timer.onLogin(this.user);
         } else {
             this.loginBtn.textContent = 'Log In';
-            this.timer.onLogout();
+            if (!isInitial) {
+                this.timer.onLogout();
+            }
         }
     }
 
@@ -111,8 +115,8 @@ class AuthManager {
     }
 
     async signIn() {
-        const email = this.emailInput.value;
-        const password = this.passwordInput.value;
+        const email = this.emailInput.value.trim();
+        const password = this.passwordInput.value.trim();
 
         if (!email || !password) {
             this.authError.textContent = 'Please enter email and password';
@@ -131,8 +135,8 @@ class AuthManager {
     }
 
     async signUp() {
-        const email = this.emailInput.value;
-        const password = this.passwordInput.value;
+        const email = this.emailInput.value.trim();
+        const password = this.passwordInput.value.trim();
 
         if (!email || !password) {
             this.authError.textContent = 'Please enter email and password';
@@ -432,6 +436,49 @@ class PomodoroTimer {
         if (error) console.error('Error syncing points:', error);
     }
 
+    async syncSessionsToSupabase() {
+        if (!this.authManager.user || !this.tasks.history || this.tasks.history.length === 0) return;
+
+        // Get all session timestamps for this user to prevent duplicates
+        const { data: existingSessions, error: fetchError } = await supabase
+            .from('pomodoro_sessions')
+            .select('created_at')
+            .eq('user_id', this.authManager.user.id);
+
+        if (fetchError) {
+            console.error('Error fetching existing sessions:', fetchError);
+            return;
+        }
+
+        const existingTimestamps = new Set(existingSessions.map(s => s.created_at));
+
+        // Filter local tasks that are not in the database
+        const newSessions = this.tasks.history.filter(task => !existingTimestamps.has(task.endTime));
+
+        if (newSessions.length === 0) {
+            return;
+        }
+
+
+
+        // Prepare data for insertion
+        const sessionsToInsert = newSessions.map(task => ({
+            user_id: this.authManager.user.id,
+            task_name: task.title,
+            duration: task.duration,
+            completed: true,
+            created_at: task.endTime
+        }));
+
+        const { error: insertError } = await supabase
+            .from('pomodoro_sessions')
+            .insert(sessionsToInsert);
+
+        if (insertError) {
+            console.error('Error uploading sessions:', insertError);
+        }
+    }
+
     async onLogin(user) {
         // Fetch user profile
         const { data, error } = await supabase
@@ -441,28 +488,48 @@ class PomodoroTimer {
             .single();
 
         if (data) {
-            // Merge or overwrite local data with cloud data
-            // For now, let's trust cloud data if it has more points, or just take cloud data
-            // Actually, let's just take cloud data to ensure sync across devices
-            this.pointsSystem = {
-                points: data.points || 0,
-                level: data.level || 1,
-                pointsToNextLevel: data.points_to_next_level || 100,
-                multiplier: data.multiplier || 1.0,
-                streakCount: data.streak_count || 0,
-                lastPomodoro: data.last_pomodoro,
-                sessionsSinceLongBreak: this.pointsSystem.sessionsSinceLongBreak // Keep local session state
-            };
+            const cloudPoints = data.points || 0;
+            const localPoints = this.pointsSystem.points;
 
-            this.updatePointsDisplay();
-            this.saveAllData();
 
-            // Show welcome notification
-            this.showNotification(`Welcome back! Loaded ${this.pointsSystem.points} points.`);
+
+            // Smart merge: keep the higher points
+            // This prevents overwriting local progress with an empty/old cloud profile
+            if (localPoints > cloudPoints) {
+                this.syncPointsToSupabase();
+                this.showNotification(`Synced ${localPoints} points to account.`);
+            } else {
+                this.pointsSystem = {
+                    points: cloudPoints,
+                    level: data.level || 1,
+                    pointsToNextLevel: data.points_to_next_level || 100,
+                    multiplier: data.multiplier || 1.0,
+                    streakCount: data.streak_count || 0,
+                    lastPomodoro: data.last_pomodoro,
+                    sessionsSinceLongBreak: this.pointsSystem.sessionsSinceLongBreak // Keep local session state
+                };
+
+                this.updatePointsDisplay();
+                this.saveAllData();
+
+                if (cloudPoints > 0) {
+                    this.showNotification(`Welcome back! Loaded ${cloudPoints} points.`);
+                } else {
+                    this.showNotification('Account connected successfully.');
+                }
+            }
         } else {
             // New user or no profile, create one with current local data
             this.syncPointsToSupabase();
+            if (this.pointsSystem.points > 0) {
+                this.showNotification(`Account connected! Synced ${this.pointsSystem.points} points.`);
+            } else {
+                this.showNotification('Account connected successfully.');
+            }
         }
+
+        // Sync local sessions history to cloud
+        await this.syncSessionsToSupabase();
     }
 
     onLogout() {
@@ -632,7 +699,6 @@ class PomodoroTimer {
 
         // Event listeners
         this.settingsBtn.addEventListener('click', () => {
-            console.log('Settings button clicked'); // Debug log
             this.openSettings();
         });
 
@@ -678,14 +744,12 @@ class PomodoroTimer {
     }
 
     openSettings() {
-        console.log('Opening settings modal'); // Debug log
         if (this.settingsModal) {
             this.settingsModal.classList.add('show');
         }
     }
 
     closeSettings() {
-        console.log('Closing settings modal'); // Debug log
         if (this.settingsModal) {
             this.settingsModal.classList.remove('show');
         }
