@@ -198,6 +198,8 @@ class PomodoroTimer {
             current: null,
             history: []
         };
+        this.activationStorageKey = 'pomotorroActivationSeen';
+        this.activationDone = false;
 
         // Initialize elements first
         this.initializeElements();
@@ -277,6 +279,7 @@ class PomodoroTimer {
             if (this.taskInput && this.taskInput.value) {
                 this.setCurrentTask(this.taskInput.value);
             }
+            this.markActivationComplete();
 
             // Resume audio context if it was suspended
             if (this.audioContext.state === 'suspended') {
@@ -660,7 +663,7 @@ class PomodoroTimer {
         this.pauseTimer();
         this.isRunning = false;
         this.remainingTime = this.duration;
-        this.startBtn.textContent = 'Start';
+        this.startBtn.textContent = 'Start Focus';
         this.resetBtn.classList.remove('show');
         this.updateDisplay();
         this.updateProgress(1);
@@ -794,7 +797,7 @@ class PomodoroTimer {
             // Update display to show focus duration
             this.updateDisplay();
             this.updateProgress(1);
-            this.startBtn.textContent = 'Start';
+            this.startBtn.textContent = 'Start Focus';
             document.title = this.originalTitle;
 
             // Update points display
@@ -865,6 +868,8 @@ class PomodoroTimer {
     initializeTaskSystem() {
         this.taskInput = document.getElementById('taskInput');
         this.taskList = document.getElementById('taskList');
+        this.activationHelper = document.getElementById('activationHelper');
+        this.quickTaskChips = Array.from(document.querySelectorAll('.quick-task-chip'));
 
         // Task input handler
         this.taskInput.addEventListener('change', (e) => {
@@ -882,8 +887,47 @@ class PomodoroTimer {
             }
         });
 
+        this.initializeActivationUX();
+
         // Initial render of task history
         this.renderTaskHistory();
+    }
+
+    initializeActivationUX() {
+        const hasActivated = localStorage.getItem(this.activationStorageKey) === '1';
+        this.activationDone = hasActivated;
+
+        if (this.startBtn && !hasActivated) {
+            this.startBtn.classList.add('cta-pulse');
+        }
+
+        if (this.activationHelper && hasActivated) {
+            this.activationHelper.classList.add('done');
+        }
+
+        this.quickTaskChips.forEach((chip) => {
+            chip.addEventListener('click', () => {
+                const task = chip.dataset.task;
+                if (!task || !this.taskInput) return;
+                this.taskInput.value = task;
+                this.taskInput.focus();
+                this.taskInput.setSelectionRange(task.length, task.length);
+            });
+        });
+    }
+
+    markActivationComplete() {
+        if (this.activationDone) return;
+        this.activationDone = true;
+        localStorage.setItem(this.activationStorageKey, '1');
+
+        if (this.startBtn) {
+            this.startBtn.classList.remove('cta-pulse');
+        }
+
+        if (this.activationHelper) {
+            this.activationHelper.classList.add('done');
+        }
     }
 
     setCurrentTask(taskTitle) {
@@ -1069,7 +1113,7 @@ class PomodoroTimer {
         // Update UI
         this.updateDisplay();
         this.updateProgress(1);
-        this.startBtn.textContent = 'Start';
+        this.startBtn.textContent = 'Start Focus';
         document.title = this.originalTitle;
 
         // Play sound if enabled

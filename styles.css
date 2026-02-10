@@ -213,6 +213,10 @@ body {
 
 /* Ensure other elements are above liquid */
 .timer-display,
+.focus-helper-line,
+.action-bar,
+.activation-helper,
+.quick-tasks,
 .start-btn,
 .task-section,
 .settings-btn,
@@ -237,6 +241,15 @@ body {
     letter-spacing: -2px;
 }
 
+.focus-helper-line {
+    font-size: 0.98rem;
+    color: #7b6765;
+    margin-top: -6px;
+    margin-bottom: 18px;
+    text-align: center;
+    max-width: 320px;
+}
+
 /* Controls */
 .action-bar {
     display: flex;
@@ -257,6 +270,49 @@ body {
     transform: translateY(-2px);
     box-shadow: 0 15px 40px rgba(255, 107, 107, 0.15);
     background: white;
+}
+
+.activation-helper {
+    font-size: 0.88rem;
+    color: #8a6f5b;
+    margin-top: -16px;
+    margin-bottom: 12px;
+    text-align: center;
+    min-height: 18px;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.activation-helper.done {
+    opacity: 0;
+    transform: translateY(-4px);
+}
+
+.quick-tasks {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    margin: 0 auto 18px;
+    max-width: 360px;
+}
+
+.quick-task-chip {
+    border: 1px solid rgba(255, 107, 107, 0.22);
+    background: rgba(255, 255, 255, 0.75);
+    color: #7a4f3d;
+    font-size: 0.82rem;
+    font-weight: 600;
+    padding: 8px 12px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.quick-task-chip:hover {
+    transform: translateY(-1px);
+    background: white;
+    border-color: rgba(255, 107, 107, 0.38);
+    box-shadow: 0 6px 18px rgba(255, 107, 107, 0.16);
 }
 
 .task-input-wrapper {
@@ -322,6 +378,23 @@ body {
     }
 }
 
+@keyframes ctaPulse {
+    0% {
+        transform: translateY(0);
+        box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+    }
+
+    50% {
+        transform: translateY(-1px);
+        box-shadow: 0 12px 28px rgba(255, 107, 107, 0.38);
+    }
+
+    100% {
+        transform: translateY(0);
+        box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+    }
+}
+
 .start-btn {
     background: var(--primary-gradient);
     color: white;
@@ -337,27 +410,8 @@ body {
     letter-spacing: 0.5px;
     text-transform: uppercase;
     white-space: nowrap;
-}
-
-.start-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(255, 107, 107, 0.4);
-}
-
-.start-btn:active {
-    transform: translateY(0);
-}
-
-.start-btn::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(rgba(255, 255, 255, 0.2), transparent);
-    opacity: 0;
-    transition: opacity 0.3s;
+    position: relative;
+    overflow: hidden;
 }
 
 .start-btn:hover {
@@ -374,30 +428,8 @@ body {
     box-shadow: 0 10px 20px rgba(255, 107, 107, 0.3);
 }
 
-.start-btn::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(rgba(255, 255, 255, 0.2), transparent);
-    opacity: 0;
-    transition: opacity 0.3s;
-}
-
-.start-btn:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 20px 40px rgba(255, 107, 107, 0.4);
-}
-
-.start-btn:hover::after {
-    opacity: 1;
-}
-
-.start-btn:active {
-    transform: translateY(-1px);
-    box-shadow: 0 10px 20px rgba(255, 107, 107, 0.3);
+.start-btn.cta-pulse {
+    animation: ctaPulse 1.8s ease-in-out infinite;
 }
 
 /* Task Section */
@@ -994,6 +1026,11 @@ input:checked+.slider:before {
         margin-bottom: 25px;
     }
 
+    .focus-helper-line {
+        font-size: 0.9rem;
+        margin-bottom: 14px;
+    }
+
     .action-bar {
         padding: 5px;
         margin-bottom: 25px;
@@ -1007,6 +1044,16 @@ input:checked+.slider:before {
     .start-btn {
         padding: 10px 20px;
         font-size: 0.9rem;
+    }
+
+    .quick-tasks {
+        gap: 6px;
+        margin-bottom: 14px;
+    }
+
+    .quick-task-chip {
+        font-size: 0.78rem;
+        padding: 7px 10px;
     }
 
     .task-history {
