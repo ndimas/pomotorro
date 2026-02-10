@@ -269,6 +269,12 @@ class PomodoroTimer {
             current: null,
             history: []
         };
+        this.retention = {
+            dailyTarget: 3,
+            todaySessions: 0,
+            streakDays: 0,
+            lastSessionDate: null
+        };
         this.activationStorageKey = 'pomotorroActivationSeen';
         this.activationDone = false;
 
@@ -312,6 +318,10 @@ class PomodoroTimer {
         this.liquidBackground = document.querySelector('.liquid-background');
         this.pointsDisplay = document.getElementById('points');
         this.navBtns = document.querySelectorAll('.nav-btn');
+        this.streakDaysDisplay = document.getElementById('streakDays');
+        this.todaySessionsDisplay = document.getElementById('todaySessions');
+        this.dailyTargetDisplay = document.getElementById('dailyTarget');
+        this.dailyGoalFill = document.getElementById('dailyGoalFill');
 
         // Add level display next to points
         const pointsDiv = document.querySelector('.points');
@@ -326,6 +336,7 @@ class PomodoroTimer {
         `;
         this.pointsDisplay = document.getElementById('points');
         this.levelBar = document.querySelector('.level-bar');
+        this.updateRetentionUI();
     }
 
     initializeEventListeners() {
@@ -448,6 +459,65 @@ class PomodoroTimer {
         this.pointsDisplay.textContent = this.pointsSystem.points;
         this.levelBar.style.width = `${this.calculateLevelProgress()}%`;
         document.querySelector('.points-content div:first-child').textContent = `Level ${this.pointsSystem.level}`;
+    }
+
+    getLocalDateKey(date = new Date()) {
+        const yyyy = date.getFullYear();
+        const mm = String(date.getMonth() + 1).padStart(2, '0');
+        const dd = String(date.getDate()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
+    }
+
+    isYesterdayKey(previousDateKey, todayDateKey) {
+        if (!previousDateKey || !todayDateKey) return false;
+        const prev = new Date(`${previousDateKey}T12:00:00`);
+        const today = new Date(`${todayDateKey}T12:00:00`);
+        const diff = today.getTime() - prev.getTime();
+        return diff > 0 && diff <= 24 * 60 * 60 * 1000;
+    }
+
+    reconcileRetentionDate() {
+        const todayKey = this.getLocalDateKey();
+        if (this.retention.lastSessionDate === todayKey) return;
+        this.retention.todaySessions = 0;
+    }
+
+    updateRetentionOnSessionComplete() {
+        const todayKey = this.getLocalDateKey();
+        const previousDate = this.retention.lastSessionDate;
+
+        if (previousDate !== todayKey) {
+            if (!previousDate) {
+                this.retention.streakDays = 1;
+            } else if (this.isYesterdayKey(previousDate, todayKey)) {
+                this.retention.streakDays += 1;
+            } else {
+                this.retention.streakDays = 1;
+            }
+            this.retention.todaySessions = 0;
+        }
+
+        this.retention.todaySessions += 1;
+        this.retention.lastSessionDate = todayKey;
+        this.updateRetentionUI();
+    }
+
+    updateRetentionUI() {
+        this.reconcileRetentionDate();
+
+        if (this.streakDaysDisplay) {
+            this.streakDaysDisplay.textContent = this.retention.streakDays;
+        }
+        if (this.todaySessionsDisplay) {
+            this.todaySessionsDisplay.textContent = this.retention.todaySessions;
+        }
+        if (this.dailyTargetDisplay) {
+            this.dailyTargetDisplay.textContent = this.retention.dailyTarget;
+        }
+        if (this.dailyGoalFill) {
+            const progress = Math.min(100, (this.retention.todaySessions / this.retention.dailyTarget) * 100);
+            this.dailyGoalFill.style.width = `${progress}%`;
+        }
     }
 
     calculatePointsEarned() {
@@ -624,6 +694,39 @@ class PomodoroTimer {
         }, 3000);
     }
 
+    showSessionRetentionNudge(pointsEarned) {
+        const completedGoal = this.retention.todaySessions >= this.retention.dailyTarget;
+        const title = completedGoal
+            ? `Goal hit: ${this.retention.todaySessions}/${this.retention.dailyTarget} sessions today`
+            : `${this.retention.todaySessions}/${this.retention.dailyTarget} sessions today`;
+        const subtitle = completedGoal
+            ? `Amazing focus streak: ${this.retention.streakDays} day${this.retention.streakDays === 1 ? '' : 's'}`
+            : `Keep momentum. One more session gets easier once you start.`;
+
+        const notification = document.createElement('div');
+        notification.className = 'points-notification retention';
+        notification.innerHTML = `
+            <p><strong>+${pointsEarned} points</strong></p>
+            <p>${title}</p>
+            <p>${subtitle}</p>
+            <button type="button" class="session-cta-btn">Plan next focus</button>
+        `;
+        document.body.appendChild(notification);
+
+        const cta = notification.querySelector('.session-cta-btn');
+        if (cta && this.taskInput) {
+            cta.addEventListener('click', () => {
+                this.taskInput.focus();
+                notification.remove();
+            });
+        }
+
+        setTimeout(() => {
+            notification.classList.add('fade-out');
+            setTimeout(() => notification.remove(), 500);
+        }, 3500);
+    }
+
     levelUp() {
         this.pointsSystem.level++;
         this.pointsSystem.multiplier += 0.1;
@@ -666,19 +769,8 @@ class PomodoroTimer {
 
         // Add points and show notification
         this.addPoints(pointsEarned);
-
-        const notification = document.createElement('div');
-        notification.className = 'points-notification';
-        notification.innerHTML = `
-            <p>+${pointsEarned} points</p>
-            ${this.tasks.current ? '<p>+25% Task Bonus!</p>' : ''}
-            ${this.pointsSystem.streakCount > 1 ? `<p>🔥 ${this.pointsSystem.streakCount}x streak!</p>` : ''}
-        `;
-        document.body.appendChild(notification);
-        setTimeout(() => {
-            notification.classList.add('fade-out');
-            setTimeout(() => notification.remove(), 500);
-        }, 2000);
+        this.updateRetentionOnSessionComplete();
+        this.showSessionRetentionNudge(pointsEarned);
 
         // Play sound
         if (this.settings.soundEnabled) {
@@ -858,6 +950,7 @@ class PomodoroTimer {
             this.settings = { ...this.settings, ...parsedData.settings };
             this.pointsSystem = { ...this.pointsSystem, ...parsedData.pointsSystem };
             this.tasks = { ...this.tasks, ...parsedData.tasks };
+            this.retention = { ...this.retention, ...parsedData.retention };
 
             // Always reset to focus duration on page load
             this.duration = this.settings.focusDuration * 60 * 1000;
@@ -873,6 +966,7 @@ class PomodoroTimer {
 
             // Update points display
             this.updatePointsDisplay();
+            this.updateRetentionUI();
         }
     }
 
@@ -882,7 +976,8 @@ class PomodoroTimer {
             pointsSystem: this.pointsSystem,
             remainingTime: this.remainingTime,
             isRunning: this.isRunning,
-            tasks: this.tasks
+            tasks: this.tasks,
+            retention: this.retention
         };
         localStorage.setItem('pomodoroData', JSON.stringify(dataToSave));
     }

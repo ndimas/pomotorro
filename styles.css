@@ -78,6 +78,56 @@ body {
     transform: translateY(-2px);
 }
 
+.retention-panel {
+    width: 100%;
+    max-width: 360px;
+    margin: -8px auto 18px;
+    background: rgba(255, 255, 255, 0.62);
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    border-radius: 20px;
+    padding: 10px 14px;
+    box-shadow: 0 8px 24px rgba(255, 107, 107, 0.08);
+}
+
+.retention-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.streak-pill {
+    font-size: 0.78rem;
+    color: #7a4f3d;
+    background: rgba(255, 255, 255, 0.82);
+    border: 1px solid rgba(255, 107, 107, 0.18);
+    border-radius: 999px;
+    padding: 5px 10px;
+    font-weight: 600;
+}
+
+.goal-count {
+    font-size: 0.82rem;
+    color: #7a4f3d;
+    font-weight: 700;
+}
+
+.goal-track {
+    height: 8px;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.goal-fill {
+    height: 100%;
+    width: 0%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #ff8a5c 0%, #ff6b6b 100%);
+    transition: width 0.3s ease;
+}
+
 .points-content {
     display: flex;
     flex-direction: column;
@@ -303,6 +353,24 @@ body {
     background: white;
     border-color: rgba(255, 107, 107, 0.38);
     box-shadow: 0 6px 18px rgba(255, 107, 107, 0.16);
+}
+
+.session-cta-btn {
+    margin-top: 10px;
+    border: none;
+    background: var(--primary-gradient);
+    color: white;
+    font-weight: 700;
+    font-family: 'Outfit', sans-serif;
+    border-radius: 14px;
+    padding: 10px 14px;
+    cursor: pointer;
+    box-shadow: 0 8px 20px rgba(255, 107, 107, 0.22);
+}
+
+.session-cta-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 12px 24px rgba(255, 107, 107, 0.3);
 }
 
 .quick-task-extra {
@@ -825,6 +893,11 @@ input:checked+.slider:before {
     color: var(--text-color);
 }
 
+.points-notification.retention {
+    max-width: 320px;
+    border: 1px solid rgba(255, 107, 107, 0.18);
+}
+
 @keyframes slideUp {
     from {
         transform: translate(-50%, 100%);
@@ -1015,6 +1088,11 @@ input:checked+.slider:before {
 
     .container {
         padding: 0;
+    }
+
+    .retention-panel {
+        max-width: 340px;
+        margin-bottom: 14px;
     }
 
     .tomato-floating {
