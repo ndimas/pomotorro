@@ -1,6 +1,16 @@
-const SUPABASE_URL = 'https://vdagjbbpxtrjtpldixeg.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZkYWdqYmJweHRyanRwbGRpeGVnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM5NzIzMzYsImV4cCI6MjA3OTU0ODMzNn0.D_EfhnLhfrThh_C2rveK2dzHefQvJpjT_ISc-j400Mk';
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+(() => {
+    if (window.__pomotorroInitialized) {
+        return;
+    }
+    window.__pomotorroInitialized = true;
+
+    const SUPABASE_URL = 'https://vdagjbbpxtrjtpldixeg.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZkYWdqYmJweHRyanRwbGRpeGVnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM5NzIzMzYsImV4cCI6MjA3OTU0ODMzNn0.D_EfhnLhfrThh_C2rveK2dzHefQvJpjT_ISc-j400Mk';
+    if (!window.supabase || typeof window.supabase.createClient !== 'function') {
+        console.error('Supabase client library failed to load.');
+        return;
+    }
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 /**
  * Authentication Manager
@@ -746,3 +756,4 @@ class PomodoroTimer {
 document.addEventListener('DOMContentLoaded', () => {
     window.pomodoro = new PomodoroTimer();
 });
+})();
