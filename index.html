@@ -43,151 +43,162 @@
 
   <link rel="icon" href="favicon.png" type="image/png">
   <link rel="stylesheet" href="styles.css">
+  <script defer data-domain="pomotorro.co" src="https://plausible.io/js/script.hash.outbound-links.js"></script>
+  <script>window.plausible = window.plausible || function () { (window.plausible.q = window.plausible.q || []).push(arguments) }</script>
+  <script async defer src="https://scripts.simpleanalyticscdn.com/latest.js"></script>
+  <noscript><img src="https://queue.simpleanalyticscdn.com/noscript.gif" alt=""
+      referrerpolicy="no-referrer-when-downgrade" /></noscript>
+  <script defer src="https://cloud.umami.is/script.js" data-website-id="2be53e5c-106b-46a3-8e1b-22f2b6da0fba"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
 <body>
-  <div class="app-container">
-    <nav class="top-nav">
-      <div class="logo">
-        <span class="logo-icon">🍅</span> Pomotorro
-      </div>
-      <div class="nav-right">
-        <div class="stats-pill">
-          <span class="level-label">Lvl <span id="levelValue">1</span></span>
-          <div class="xp-bar-container">
-            <div class="xp-bar" id="xpBar" style="width: 0%"></div>
-          </div>
-          <span class="points-value">💎 <span id="points">120</span></span>
-        </div>
-        <button class="icon-btn settings-btn" title="Settings">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
-            <circle cx="12" cy="12" r="3"></circle>
-          </svg>
-        </button>
-        <button class="primary-btn-sm login-btn" id="loginBtn">Log In</button>
-      </div>
-    </nav>
+  <div class="container">
+    <div class="timer-card">
+      <div class="points">Points: <span id="points">120</span></div>
 
-    <main class="main-content">
-      <div class="focus-container">
-        <!-- Timer Ring / Display -->
-        <div class="timer-wrapper">
-          <div class="timer-ring-bg"></div>
-          <svg class="timer-ring" width="300" height="300">
-            <circle class="ring-circle-bg" cx="150" cy="150" r="140"></circle>
-            <circle class="ring-circle-progress" id="timerProgress" cx="150" cy="150" r="140"></circle>
-          </svg>
-          <div class="timer-display-container">
-            <div class="timer-label" id="timerLabel">FOCUS</div>
-            <div class="timer-time">25:00</div>
-          </div>
+      <div class="liquid-container">
+        <div class="liquid-background">
+          <div class="wave"></div>
+          <div class="wave"></div>
         </div>
+      </div>
 
-        <!-- Controls -->
-        <div class="controls-area">
-          <div class="task-input-container">
-            <input type="text" id="taskInput" placeholder="What are you focusing on?" class="minimal-input">
-          </div>
-          
-          <div class="main-actions">
-            <button class="control-btn icon-only reset-btn" title="Reset">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
-                    <path d="M3 3v5h5"></path>
-                </svg>
-            </button>
-            <button class="control-btn play-btn start-btn">Start Focus</button>
+      <div class="tomato-floating">
+        <img src="pomotorro.png" alt="Pomotorro" class="tomato-img">
+      </div>
+
+      <div class="timer-display">25:00</div>
+
+      <div class="action-bar">
+        <div class="task-input-wrapper">
+          <input type="text" id="taskInput" placeholder="What are you working on?" class="task-input">
+        </div>
+        <button class="reset-btn" title="Reset Timer">↺</button>
+        <button class="start-btn">Start Focus</button>
+      </div>
+      <div class="activation-helper" id="activationHelper">Pick a task and press Start Focus.</div>
+      <div class="quick-tasks" id="quickTasks">
+        <button class="quick-task-chip" type="button" data-task="Inbox zero sprint">Inbox zero</button>
+        <button class="quick-task-chip" type="button" data-task="Write one draft">Write draft</button>
+        <button class="quick-task-chip quick-task-more" type="button" data-action="more">More</button>
+        <button class="quick-task-chip quick-task-extra" type="button" data-task="Code one feature">Code feature</button>
+        <button class="quick-task-chip quick-task-extra" type="button" data-task="Review and ship pull request">Ship PR</button>
+      </div>
+
+      <!-- Add this right after the timer display and before the start button -->
+      <div class="task-section">
+        <div class="task-history" style="display: none;">
+          <h3>Recent Tasks</h3>
+          <div class="task-list" id="taskList">
+            <!-- Tasks will be inserted here dynamically -->
           </div>
         </div>
       </div>
 
-      <!-- Right Panel / Bottom Sheet script.js logic might need adjustment for this placement -->
-      <div class="tasks-panel">
-        <div class="panel-header">
-           <h3>Session Log</h3>
-        </div>
-        <div class="task-list" id="taskList">
-          <!-- Tasks injected here -->
-        </div>
+      <div class="button-group">
+        <button class="settings-btn">⚙ Settings</button>
+        <button class="login-btn" id="loginBtn">Log In</button>
       </div>
-    </main>
 
-    <!-- Modals -->
-    <div class="modal-overlay" id="settingsModal">
-      <div class="modal-card">
-        <div class="modal-header">
-          <h2>Timer Settings</h2>
+      <nav class="bottom-nav">
+        <button class="nav-btn active" data-tab="timeline">Timer</button>
+      </nav>
+
+      <a href="mailto:contact@why.sh?subject=Pomotorro%20Feedback" class="feedback-btn">
+        Send Feedback
+      </a>
+    </div>
+
+    <!-- Add Settings Modal -->
+    <div class="settings-modal" id="settingsModal">
+      <div class="settings-content">
+        <div class="settings-header">
+          <h2>⚙️ Timer Settings</h2>
           <button class="close-btn">&times;</button>
         </div>
-        <div class="modal-body">
-            <!-- Settings content similar to before but restyled -->
-            <div class="setting-row">
-                <label>Focus Duration</label>
-                <div class="number-control">
-                    <button class="minus">-</button>
-                    <input type="number" id="focusDuration" value="25" readonly>
-                    <button class="plus">+</button>
-                </div>
+
+        <div class="settings-body">
+          <div class="setting-group">
+            <label>Focus Duration</label>
+            <div class="time-picker">
+              <button class="time-btn minus">-</button>
+              <input type="number" id="focusDuration" min="1" max="60" value="25">
+              <button class="time-btn plus">+</button>
+              <span class="unit">min</span>
             </div>
-            <div class="setting-row">
-                <label>Short Break</label>
-                <div class="number-control">
-                    <button class="minus">-</button>
-                    <input type="number" id="shortBreak" value="5" readonly>
-                    <button class="plus">+</button>
-                </div>
+          </div>
+
+          <div class="setting-group">
+            <label>Short Break</label>
+            <div class="time-picker">
+              <button class="time-btn minus">-</button>
+              <input type="number" id="shortBreak" min="1" max="30" value="5">
+              <button class="time-btn plus">+</button>
+              <span class="unit">min</span>
             </div>
-            <div class="setting-row">
-                <label>Long Break</label>
-                <div class="number-control">
-                    <button class="minus">-</button>
-                    <input type="number" id="longBreak" value="15" readonly>
-                    <button class="plus">+</button>
-                </div>
+          </div>
+
+          <div class="setting-group">
+            <label>Long Break</label>
+            <div class="time-picker">
+              <button class="time-btn minus">-</button>
+              <input type="number" id="longBreak" min="1" max="45" value="15">
+              <button class="time-btn plus">+</button>
+              <span class="unit">min</span>
             </div>
-            <div class="setting-row">
-                <label>Sound</label>
-                <label class="toggle-switch">
-                    <input type="checkbox" id="soundEnabled" checked>
-                    <span class="slider"></span>
-                </label>
-            </div>
-            <div class="setting-row">
-                <label>Auto-start Breaks</label>
-                <label class="toggle-switch">
-                    <input type="checkbox" id="autoStartBreaks">
-                    <span class="slider"></span>
-                </label>
-            </div>
+          </div>
+
+          <div class="setting-group">
+            <label>Auto-start Breaks</label>
+            <label class="switch">
+              <input type="checkbox" id="autoStartBreaks">
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="setting-group">
+            <label>Sound Notifications</label>
+            <label class="switch">
+              <input type="checkbox" id="soundEnabled" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
         </div>
-        <div class="modal-footer">
-            <button class="ghost-btn cancel-btn">Cancel</button>
-            <button class="primary-btn save-btn">Save Changes</button>
+
+        <div class="settings-footer">
+          <button class="cancel-btn">Cancel</button>
+          <button class="save-btn">Save Changes</button>
         </div>
       </div>
     </div>
 
-    <div class="modal-overlay" id="loginModal">
-      <div class="modal-card small">
-        <div class="modal-header">
-          <h2>Welcome Back</h2>
+    <!-- Login Modal -->
+    <div class="settings-modal" id="loginModal">
+      <div class="settings-content login-content">
+        <div class="settings-header">
+          <h2>👋 Welcome Back</h2>
           <button class="close-btn">&times;</button>
         </div>
-        <div class="modal-body">
-            <div class="auth-fields">
-                <input type="email" id="emailInput" placeholder="Email address" class="auth-input">
-                <input type="password" id="passwordInput" placeholder="Password" class="auth-input">
-                <div id="authError" class="error-msg"></div>
+
+        <div class="settings-body">
+          <div class="auth-form">
+            <div class="form-group">
+              <label>Email</label>
+              <input type="email" id="emailInput" placeholder="you@example.com">
             </div>
-            <button class="primary-btn full-width" id="loginSubmitBtn">Log In</button>
-            <div class="divider">or</div>
-            <button class="secondary-btn full-width" id="signupSubmitBtn">Create Account</button>
+            <div class="form-group">
+              <label>Password</label>
+              <input type="password" id="passwordInput" placeholder="••••••••">
+            </div>
+            <div class="auth-error" id="authError"></div>
+            <button class="primary-btn" id="loginSubmitBtn">Log In</button>
+            <div class="auth-divider">or</div>
+            <button class="secondary-btn" id="signupSubmitBtn">Create Account</button>
+          </div>
         </div>
       </div>
     </div>
-
   </div>
   <script defer src="script.js"></script>
 </body>
