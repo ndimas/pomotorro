@@ -6,6 +6,10 @@ window.__pomotorroInitialized = true;
 
 const SUPABASE_URL = 'https://vdagjbbpxtrjtpldixeg.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZkYWdqYmJweHRyanRwbGRpeGVnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM5NzIzMzYsImV4cCI6MjA3OTU0ODMzNn0.D_EfhnLhfrThh_C2rveK2dzHefQvJpjT_ISc-j400Mk';
+if (!window.supabase || typeof window.supabase.createClient !== 'function') {
+    console.error('Supabase client library failed to load.');
+    return;
+}
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 class AuthManager {
@@ -115,9 +119,9 @@ class AuthManager {
 
     closeModal() {
         this.loginModal.classList.remove('show');
-        this.emailInput.value = '';
-        this.passwordInput.value = '';
-        this.authError.textContent = '';
+        if (this.emailInput) this.emailInput.value = '';
+        if (this.passwordInput) this.passwordInput.value = '';
+        if (this.authError) this.authError.textContent = '';
     }
 
     async signIn() {
@@ -126,43 +130,104 @@ class AuthManager {
 
         if (!email || !password) {
             this.authError.textContent = 'Please enter email and password';
+            this.authError.style.color = 'red';
             return;
         }
 
+        this.loginSubmitBtn.disabled = true;
         this.loginSubmitBtn.textContent = 'Logging in...';
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        this.loginSubmitBtn.textContent = 'Log In';
-
-        if (error) {
-            this.authError.textContent = error.message;
-        } else {
+        try {
+            const { error } = await supabase.auth.signInWithPassword({ email, password });
+            if (error) {
+                this.authError.textContent = error.message;
+                this.authError.style.color = 'red';
+                return;
+            }
             this.closeModal();
+        } catch (error) {
+            this.authError.textContent = error?.message || 'Unable to log in right now.';
+            this.authError.style.color = 'red';
+        } finally {
+            this.loginSubmitBtn.disabled = false;
+            this.loginSubmitBtn.textContent = 'Log In';
         }
     }
 
     async signUp() {
         const email = this.emailInput.value.trim();
         const password = this.passwordInput.value.trim();
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
         if (!email || !password) {
             this.authError.textContent = 'Please enter email and password';
+            this.authError.style.color = 'red';
             return;
         }
 
-        this.signupSubmitBtn.textContent = 'Creating...';
-        const { data, error } = await supabase.auth.signUp({ email, password });
-        this.signupSubmitBtn.textContent = 'Create Account';
+        if (!emailRegex.test(email)) {
+            this.authError.textContent = 'Please enter a valid email address';
+            this.authError.style.color = 'red';
+            return;
+        }
 
-        if (error) {
-            this.authError.textContent = error.message;
-        } else if (data.session) {
-            this.authError.textContent = 'Account created! You are now logged in.';
-            this.authError.style.color = 'green';
-            setTimeout(() => this.closeModal(), 1500);
-        } else if (data.user) {
-            this.authError.textContent = 'Account created! Please check your email to confirm.';
-            this.authError.style.color = 'orange';
-            // Don't close modal immediately so they can see the message
+        if (password.length < 6) {
+            this.authError.textContent = 'Password must be at least 6 characters';
+            this.authError.style.color = 'red';
+            return;
+        }
+
+        this.signupSubmitBtn.disabled = true;
+        this.signupSubmitBtn.textContent = 'Creating...';
+        try {
+            const { data, error } = await supabase.auth.signUp({
+                email,
+                password,
+                options: {
+                    emailRedirectTo: `${window.location.origin}${window.location.pathname}`
+                }
+            });
+
+            if (error) {
+                const msg = (error.message || '').toLowerCase();
+                if (msg.includes('already registered') || msg.includes('already exists')) {
+                    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+                    if (!signInError) {
+                        this.authError.textContent = 'Account exists. Logged you in.';
+                        this.authError.style.color = 'green';
+                        setTimeout(() => this.closeModal(), 1000);
+                        return;
+                    }
+
+                    if ((signInError.message || '').toLowerCase().includes('email not confirmed')) {
+                        this.authError.textContent = 'Account exists. Please confirm your email first.';
+                        this.authError.style.color = 'orange';
+                        return;
+                    }
+
+                    this.authError.textContent = 'Account already exists. Use Log In with your password.';
+                    this.authError.style.color = 'red';
+                    return;
+                }
+
+                this.authError.textContent = error.message;
+                this.authError.style.color = 'red';
+                return;
+            }
+
+            if (data.session) {
+                this.authError.textContent = 'Account created! You are now logged in.';
+                this.authError.style.color = 'green';
+                setTimeout(() => this.closeModal(), 1500);
+            } else if (data.user) {
+                this.authError.textContent = 'Account created! Please check your email to confirm.';
+                this.authError.style.color = 'orange';
+            }
+        } catch (error) {
+            this.authError.textContent = error?.message || 'Unable to create account right now.';
+            this.authError.style.color = 'red';
+        } finally {
+            this.signupSubmitBtn.disabled = false;
+            this.signupSubmitBtn.textContent = 'Create Account';
         }
     }
 
