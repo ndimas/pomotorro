@@ -263,6 +263,7 @@ body {
 
 /* Ensure other elements are above liquid */
 .timer-display,
+.retention-panel,
 .action-bar,
 .activation-helper,
 .quick-tasks,
