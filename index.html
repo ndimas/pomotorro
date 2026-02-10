@@ -69,7 +69,6 @@
       </div>
 
       <div class="timer-display">25:00</div>
-      <p class="focus-helper-line">One focused sprint beats scattered multitasking.</p>
 
       <div class="action-bar">
         <div class="task-input-wrapper">
@@ -78,17 +77,18 @@
         <button class="reset-btn" title="Reset Timer">↺</button>
         <button class="start-btn">Start Focus</button>
       </div>
-      <div class="activation-helper" id="activationHelper">Choose a quick task or type your own, then press Start Focus.</div>
+      <div class="activation-helper" id="activationHelper">Pick a task and press Start Focus.</div>
       <div class="quick-tasks" id="quickTasks">
         <button class="quick-task-chip" type="button" data-task="Inbox zero sprint">Inbox zero</button>
         <button class="quick-task-chip" type="button" data-task="Write one draft">Write draft</button>
-        <button class="quick-task-chip" type="button" data-task="Code one feature">Code feature</button>
-        <button class="quick-task-chip" type="button" data-task="Review and ship pull request">Ship PR</button>
+        <button class="quick-task-chip quick-task-more" type="button" data-action="more">More</button>
+        <button class="quick-task-chip quick-task-extra" type="button" data-task="Code one feature">Code feature</button>
+        <button class="quick-task-chip quick-task-extra" type="button" data-task="Review and ship pull request">Ship PR</button>
       </div>
 
       <!-- Add this right after the timer display and before the start button -->
       <div class="task-section">
-        <div class="task-history">
+        <div class="task-history" style="display: none;">
           <h3>Recent Tasks</h3>
           <div class="task-list" id="taskList">
             <!-- Tasks will be inserted here dynamically -->

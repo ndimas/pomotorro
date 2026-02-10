@@ -869,6 +869,7 @@ class PomodoroTimer {
         this.taskInput = document.getElementById('taskInput');
         this.taskList = document.getElementById('taskList');
         this.activationHelper = document.getElementById('activationHelper');
+        this.quickTasks = document.getElementById('quickTasks');
         this.quickTaskChips = Array.from(document.querySelectorAll('.quick-task-chip'));
 
         // Task input handler
@@ -907,6 +908,13 @@ class PomodoroTimer {
 
         this.quickTaskChips.forEach((chip) => {
             chip.addEventListener('click', () => {
+                if (chip.dataset.action === 'more') {
+                    if (!this.quickTasks) return;
+                    const expanded = this.quickTasks.classList.toggle('expanded');
+                    chip.textContent = expanded ? 'Less' : 'More';
+                    return;
+                }
+
                 const task = chip.dataset.task;
                 if (!task || !this.taskInput) return;
                 this.taskInput.value = task;
