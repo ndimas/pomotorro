@@ -906,21 +906,29 @@ class PomodoroTimer {
             this.activationHelper.classList.add('done');
         }
 
-        this.quickTaskChips.forEach((chip) => {
-            chip.addEventListener('click', () => {
-                if (chip.dataset.action === 'more') {
-                    if (!this.quickTasks) return;
-                    const expanded = this.quickTasks.classList.toggle('expanded');
-                    chip.textContent = expanded ? 'Less' : 'More';
-                    return;
-                }
+        if (!this.quickTasks || !this.taskInput) return;
 
-                const task = chip.dataset.task;
-                if (!task || !this.taskInput) return;
-                this.taskInput.value = task;
-                this.taskInput.focus();
+        this.quickTasks.addEventListener('click', (event) => {
+            const chip = event.target.closest('.quick-task-chip');
+            if (!chip) return;
+
+            if (chip.dataset.action === 'more') {
+                const expanded = this.quickTasks.classList.toggle('expanded');
+                chip.textContent = expanded ? 'Less' : 'More';
+                return;
+            }
+
+            const task = chip.dataset.task;
+            if (!task) return;
+
+            this.taskInput.value = task;
+            this.setCurrentTask(task);
+            this.taskInput.focus();
+            try {
                 this.taskInput.setSelectionRange(task.length, task.length);
-            });
+            } catch (error) {
+                // Ignore selection issues on browsers that don't support this state.
+            }
         });
     }
 
