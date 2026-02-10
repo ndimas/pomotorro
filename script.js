@@ -276,6 +276,7 @@ class PomodoroTimer {
             lastSessionDate: null
         };
         this.activationStorageKey = 'pomotorroActivationSeen';
+        this.proTeaserStorageKey = 'pomotorroProTeaserDismissed';
         this.activationDone = false;
 
         // Initialize elements first
@@ -288,6 +289,7 @@ class PomodoroTimer {
         this.initializeSettingsModal();
         this.initializeAudio();
         this.initializeTaskSystem();
+        this.initializeMonetizationTeaser();
 
         // Initialize Auth Manager
         this.authManager = new AuthManager(this);
@@ -322,6 +324,9 @@ class PomodoroTimer {
         this.todaySessionsDisplay = document.getElementById('todaySessions');
         this.dailyTargetDisplay = document.getElementById('dailyTarget');
         this.dailyGoalFill = document.getElementById('dailyGoalFill');
+        this.proTeaser = document.getElementById('proTeaser');
+        this.upgradeBtn = document.getElementById('upgradeBtn');
+        this.proDismissBtn = document.getElementById('proDismissBtn');
 
         // Add level display next to points
         const pointsDiv = document.querySelector('.points');
@@ -349,6 +354,33 @@ class PomodoroTimer {
                 e.target.classList.add('active');
             });
         });
+
+        if (this.upgradeBtn) {
+            this.upgradeBtn.addEventListener('click', () => this.openProIntent());
+        }
+
+        if (this.proDismissBtn) {
+            this.proDismissBtn.addEventListener('click', () => this.dismissProTeaser());
+        }
+    }
+
+    initializeMonetizationTeaser() {
+        if (!this.proTeaser) return;
+        const dismissed = localStorage.getItem(this.proTeaserStorageKey) === '1';
+        this.proTeaser.style.display = dismissed ? 'none' : 'block';
+    }
+
+    dismissProTeaser() {
+        if (this.proTeaser) {
+            this.proTeaser.style.display = 'none';
+        }
+        localStorage.setItem(this.proTeaserStorageKey, '1');
+    }
+
+    openProIntent() {
+        const subject = encodeURIComponent('Pomotorro Pro Waitlist');
+        const body = encodeURIComponent('Hey team, I want early access to Pomotorro Pro.');
+        window.location.href = `mailto:contact@why.sh?subject=${subject}&body=${body}`;
     }
 
     toggleTimer() {
