@@ -10,6 +10,91 @@ const STRIPE_PAYMENT_LINK = 'https://buy.stripe.com/test_6oU6oGdOv5z99Gm72q4F201
 const STRIPE_PUBLISHABLE_KEY = '';
 const STRIPE_PRICE_ID = '';
 const IS_FILE_ORIGIN = window.location.protocol === 'file:';
+
+function sanitizeEventProps(props = {}) {
+    const sanitized = {};
+    Object.entries(props).forEach(([key, value]) => {
+        if (value === undefined || value === null) return;
+        if (typeof value === 'number' || typeof value === 'boolean') {
+            sanitized[key] = value;
+            return;
+        }
+        const normalized = String(value).trim();
+        if (!normalized) return;
+        sanitized[key] = normalized.slice(0, 120);
+    });
+    return sanitized;
+}
+
+function categorizeAuthError(message) {
+    const msg = (message || '').toLowerCase();
+    if (!msg) return 'unknown';
+    if (msg.includes('invalid login credentials')) return 'invalid_credentials';
+    if (msg.includes('email not confirmed')) return 'email_not_confirmed';
+    if (msg.includes('already registered') || msg.includes('already exists')) return 'already_exists';
+    if (msg.includes('failed to fetch') || msg.includes('network')) return 'network';
+    return 'other';
+}
+
+class AnalyticsTracker {
+    constructor() {
+        this.sessionStorageKey = 'pomotorroAnalyticsSessionId';
+        this.sessionId = this.getOrCreateSessionId();
+    }
+
+    getOrCreateSessionId() {
+        try {
+            const existing = sessionStorage.getItem(this.sessionStorageKey);
+            if (existing) return existing;
+            const created = `${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;
+            sessionStorage.setItem(this.sessionStorageKey, created);
+            return created;
+        } catch (error) {
+            return `volatile-${Date.now()}`;
+        }
+    }
+
+    track(eventName, properties = {}) {
+        if (!eventName) return;
+        const payload = sanitizeEventProps({
+            ...properties,
+            path: window.location.pathname,
+            session_id: this.sessionId
+        });
+
+        if (typeof window.plausible === 'function') {
+            try {
+                window.plausible(eventName, { props: payload });
+            } catch (error) {
+                console.error('Plausible track failed:', error);
+            }
+        }
+
+        if (window.umami && typeof window.umami.track === 'function') {
+            try {
+                window.umami.track(eventName, payload);
+            } catch (error) {
+                console.error('Umami track failed:', error);
+            }
+        }
+
+        if (typeof window.sa_event === 'function') {
+            try {
+                window.sa_event(eventName, payload);
+            } catch (error) {
+                console.error('SimpleAnalytics track failed:', error);
+            }
+        }
+
+        const localLog = Array.isArray(window.__pomotorroEventLog) ? window.__pomotorroEventLog : [];
+        localLog.push({ event: eventName, at: new Date().toISOString(), props: payload });
+        if (localLog.length > 100) {
+            localLog.shift();
+        }
+        window.__pomotorroEventLog = localLog;
+    }
+}
+
 if (!window.supabase || typeof window.supabase.createClient !== 'function') {
     console.error('Supabase client library failed to load.');
     return;
@@ -30,6 +115,7 @@ class AuthManager {
         this.initializeElements();
         this.initializeEventListeners();
         if (this.isAuthDisabledForFileOrigin) {
+            this.timer.trackEvent('auth_disabled_file_origin');
             this.showFileOriginMessage();
             this.handleAuthStateChange(null, true);
             return;
@@ -130,6 +216,7 @@ class AuthManager {
 
     openModal() {
         this.loginModal.classList.add('show');
+        this.timer.trackEvent('auth_modal_opened');
         if (this.isAuthDisabledForFileOrigin) {
             this.showFileOriginMessage();
             return;
@@ -155,22 +242,27 @@ class AuthManager {
         if (!email || !password) {
             this.authError.textContent = 'Please enter email and password';
             this.authError.style.color = 'red';
+            this.timer.trackEvent('auth_login_validation_error', { reason: 'missing_credentials' });
             return;
         }
 
         this.loginSubmitBtn.disabled = true;
         this.loginSubmitBtn.textContent = 'Logging in...';
+        this.timer.trackEvent('auth_login_attempt');
         try {
             const { error } = await supabase.auth.signInWithPassword({ email, password });
             if (error) {
                 this.authError.textContent = error.message;
                 this.authError.style.color = 'red';
+                this.timer.trackEvent('auth_login_failed', { category: categorizeAuthError(error.message) });
                 return;
             }
+            this.timer.trackEvent('auth_login_success');
             this.closeModal();
         } catch (error) {
             this.authError.textContent = error?.message || 'Unable to log in right now.';
             this.authError.style.color = 'red';
+            this.timer.trackEvent('auth_login_failed', { category: categorizeAuthError(error?.message) });
         } finally {
             this.loginSubmitBtn.disabled = false;
             this.loginSubmitBtn.textContent = 'Log In';
@@ -189,23 +281,27 @@ class AuthManager {
         if (!email || !password) {
             this.authError.textContent = 'Please enter email and password';
             this.authError.style.color = 'red';
+            this.timer.trackEvent('auth_signup_validation_error', { reason: 'missing_credentials' });
             return;
         }
 
         if (!emailRegex.test(email)) {
             this.authError.textContent = 'Please enter a valid email address';
             this.authError.style.color = 'red';
+            this.timer.trackEvent('auth_signup_validation_error', { reason: 'invalid_email' });
             return;
         }
 
         if (password.length < 6) {
             this.authError.textContent = 'Password must be at least 6 characters';
             this.authError.style.color = 'red';
+            this.timer.trackEvent('auth_signup_validation_error', { reason: 'password_too_short' });
             return;
         }
 
         this.signupSubmitBtn.disabled = true;
         this.signupSubmitBtn.textContent = 'Creating...';
+        this.timer.trackEvent('auth_signup_attempt');
         try {
             const { data, error } = await supabase.auth.signUp({
                 email,
@@ -222,6 +318,7 @@ class AuthManager {
                     if (!signInError) {
                         this.authError.textContent = 'Account exists. Logged you in.';
                         this.authError.style.color = 'green';
+                        this.timer.trackEvent('auth_signup_existing_account_logged_in');
                         setTimeout(() => this.closeModal(), 1000);
                         return;
                     }
@@ -229,30 +326,36 @@ class AuthManager {
                     if ((signInError.message || '').toLowerCase().includes('email not confirmed')) {
                         this.authError.textContent = 'Account exists. Please confirm your email first.';
                         this.authError.style.color = 'orange';
+                        this.timer.trackEvent('auth_signup_existing_account_unconfirmed');
                         return;
                     }
 
                     this.authError.textContent = 'Account already exists. Use Log In with your password.';
                     this.authError.style.color = 'red';
+                    this.timer.trackEvent('auth_signup_failed', { category: 'already_exists' });
                     return;
                 }
 
                 this.authError.textContent = error.message;
                 this.authError.style.color = 'red';
+                this.timer.trackEvent('auth_signup_failed', { category: categorizeAuthError(error.message) });
                 return;
             }
 
             if (data.session) {
                 this.authError.textContent = 'Account created! You are now logged in.';
                 this.authError.style.color = 'green';
+                this.timer.trackEvent('auth_signup_success', { mode: 'auto_login' });
                 setTimeout(() => this.closeModal(), 1500);
             } else if (data.user) {
                 this.authError.textContent = 'Account created! Please check your email to confirm.';
                 this.authError.style.color = 'orange';
+                this.timer.trackEvent('auth_signup_success', { mode: 'email_confirmation' });
             }
         } catch (error) {
             this.authError.textContent = error?.message || 'Unable to create account right now.';
             this.authError.style.color = 'red';
+            this.timer.trackEvent('auth_signup_failed', { category: categorizeAuthError(error?.message) });
         } finally {
             this.signupSubmitBtn.disabled = false;
             this.signupSubmitBtn.textContent = 'Create Account';
@@ -261,6 +364,7 @@ class AuthManager {
 
     async signOut() {
         await supabase.auth.signOut();
+        this.timer.trackEvent('auth_logout');
     }
 
     showFileOriginMessage() {
@@ -272,6 +376,7 @@ class AuthManager {
 
 class PomodoroTimer {
     constructor() {
+        this.analytics = new AnalyticsTracker();
         this.duration = 25 * 60 * 1000; // 25 minutes in milliseconds
         this.points = 120;
         this.isRunning = false;
@@ -293,7 +398,6 @@ class PomodoroTimer {
             level: 1,
             pointsToNextLevel: 100,
             multiplier: 1,
-            streakCount: 0,
             streakCount: 0,
             lastPomodoro: null,
             sessionsSinceLongBreak: 0
@@ -325,6 +429,10 @@ class PomodoroTimer {
         this.initializeTaskSystem();
         this.initializeMonetizationTeaser();
         this.handleCheckoutStatusFromUrl();
+        this.trackEvent('app_loaded', {
+            file_origin: this.isFileOrigin() ? 1 : 0,
+            viewport: `${window.innerWidth}x${window.innerHeight}`
+        });
 
         // Initialize Auth Manager
         this.authManager = new AuthManager(this);
@@ -379,6 +487,15 @@ class PomodoroTimer {
         this.updateRetentionUI();
     }
 
+    isFileOrigin() {
+        return window.location.protocol === 'file:';
+    }
+
+    trackEvent(name, properties = {}) {
+        if (!this.analytics) return;
+        this.analytics.track(name, properties);
+    }
+
     initializeEventListeners() {
         this.startBtn.addEventListener('click', () => this.toggleTimer());
         this.resetBtn.addEventListener('click', () => this.resetTimer());
@@ -403,6 +520,7 @@ class PomodoroTimer {
         if (!this.proTeaser) return;
         const dismissed = localStorage.getItem(this.proTeaserStorageKey) === '1';
         this.proTeaser.style.display = dismissed ? 'none' : 'block';
+        this.trackEvent('support_card_rendered', { dismissed: dismissed ? 1 : 0 });
     }
 
     dismissProTeaser() {
@@ -410,13 +528,16 @@ class PomodoroTimer {
             this.proTeaser.style.display = 'none';
         }
         localStorage.setItem(this.proTeaserStorageKey, '1');
+        this.trackEvent('support_card_dismissed');
     }
 
     openProIntent() {
+        this.trackEvent('support_checkout_click');
         if (window.Stripe && STRIPE_PUBLISHABLE_KEY && STRIPE_PRICE_ID) {
             const stripe = window.Stripe(STRIPE_PUBLISHABLE_KEY);
             const successUrl = `${window.location.origin}${window.location.pathname}?checkout=success`;
             const cancelUrl = `${window.location.origin}${window.location.pathname}?checkout=cancel`;
+            this.trackEvent('support_checkout_opened', { mode: 'redirect_to_checkout' });
             stripe.redirectToCheckout({
                 lineItems: [{ price: STRIPE_PRICE_ID, quantity: 1 }],
                 mode: 'payment',
@@ -424,6 +545,7 @@ class PomodoroTimer {
                 cancelUrl
             }).then(result => {
                 if (result?.error) {
+                    this.trackEvent('support_checkout_failed', { category: 'stripe_redirect_error' });
                     this.showNotification(result.error.message || 'Unable to start checkout right now.');
                 }
             });
@@ -431,11 +553,13 @@ class PomodoroTimer {
         }
 
         if (STRIPE_PAYMENT_LINK) {
+            this.trackEvent('support_checkout_opened', { mode: 'payment_link' });
             window.open(STRIPE_PAYMENT_LINK, '_blank', 'noopener,noreferrer');
             return;
         }
 
-        this.showNotification('Pro checkout is not configured yet.');
+        this.trackEvent('support_checkout_failed', { category: 'not_configured' });
+        this.showNotification('Support checkout is not configured yet.');
     }
 
     handleCheckoutStatusFromUrl() {
@@ -444,8 +568,11 @@ class PomodoroTimer {
 
         if (checkoutStatus === 'success') {
             this.dismissProTeaser();
-            this.showNotification('Payment received. Pro unlock is being prepared.');
+            localStorage.setItem('pomotorroSupporter', '1');
+            this.trackEvent('support_checkout_success');
+            this.showNotification('Payment received. Thanks for supporting Pomotorro.');
         } else if (checkoutStatus === 'cancel') {
+            this.trackEvent('support_checkout_canceled');
             this.showNotification('Checkout canceled. You can try again anytime.');
         } else {
             return;
@@ -457,15 +584,23 @@ class PomodoroTimer {
 
     toggleTimer() {
         if (this.isRunning) {
+            this.trackEvent('focus_paused', {
+                remaining_seconds: Math.ceil(this.remainingTime / 1000)
+            });
             this.pauseTimer();
             this.startBtn.textContent = 'Resume';
             this.resetBtn.classList.add('show');
         } else {
+            const isResume = this.remainingTime < this.duration;
             // Capture current task input if set
             if (this.taskInput && this.taskInput.value) {
                 this.setCurrentTask(this.taskInput.value);
             }
             this.markActivationComplete();
+            this.trackEvent(isResume ? 'focus_resumed' : 'focus_started', {
+                focus_minutes: this.settings.focusDuration,
+                has_task: this.tasks.current ? 1 : 0
+            });
 
             // Resume audio context if it was suspended
             if (this.audioContext.state === 'suspended') {
@@ -728,6 +863,7 @@ class PomodoroTimer {
     }
 
     async onLogin(user) {
+        this.trackEvent('auth_session_active');
         // Fetch user profile
         const { data, error } = await supabase
             .from('profiles')
@@ -784,6 +920,7 @@ class PomodoroTimer {
         // Optional: clear data or keep it?
         // Let's keep it for now, but maybe we should reset to default?
         // For a better UX, maybe we just keep the current state but it's no longer syncing.
+        this.trackEvent('auth_session_inactive');
         this.showNotification('Logged out. Progress will be saved locally.');
     }
 
@@ -859,6 +996,7 @@ class PomodoroTimer {
     }
 
     async completePomodoro() {
+        const hadTask = Boolean(this.tasks.current);
         // Calculate points first
         let pointsEarned;
         if (this.tasks.current) {
@@ -875,6 +1013,12 @@ class PomodoroTimer {
         this.addPoints(pointsEarned);
         this.updateRetentionOnSessionComplete();
         this.showSessionRetentionNudge(pointsEarned);
+        this.trackEvent('focus_completed', {
+            points_earned: pointsEarned,
+            had_task: hadTask ? 1 : 0,
+            sessions_today: this.retention.todaySessions,
+            streak_days: this.retention.streakDays
+        });
 
         // Play sound
         if (this.settings.soundEnabled) {
@@ -939,7 +1083,10 @@ class PomodoroTimer {
 
     resetTimer() {
         if (confirm('Are you sure you want to reset the timer?')) {
+            this.trackEvent('focus_reset_confirmed');
             this.reset();
+        } else {
+            this.trackEvent('focus_reset_canceled');
         }
     }
 
@@ -1041,6 +1188,13 @@ class PomodoroTimer {
 
         // Save to the single data store
         this.saveAllData();
+        this.trackEvent('settings_saved', {
+            focus_duration: this.settings.focusDuration,
+            short_break: this.settings.shortBreak,
+            long_break: this.settings.longBreak,
+            auto_start_breaks: this.settings.autoStartBreaks ? 1 : 0,
+            sound_enabled: this.settings.soundEnabled ? 1 : 0
+        });
 
         this.updateDisplay();
         this.updateProgress(1);
@@ -1185,6 +1339,7 @@ class PomodoroTimer {
             if (chip.dataset.action === 'more') {
                 const expanded = this.quickTasks.classList.toggle('expanded');
                 chip.textContent = expanded ? 'Less' : 'More';
+                this.trackEvent('task_chip_toggle_more', { expanded: expanded ? 1 : 0 });
                 return;
             }
 
@@ -1194,6 +1349,7 @@ class PomodoroTimer {
             this.taskInput.value = task;
             this.setCurrentTask(task);
             this.taskInput.focus();
+            this.trackEvent('task_chip_selected', { label: task.toLowerCase().replace(/\s+/g, '_') });
             try {
                 this.taskInput.setSelectionRange(task.length, task.length);
             } catch (error) {
@@ -1206,6 +1362,7 @@ class PomodoroTimer {
         if (this.activationDone) return;
         this.activationDone = true;
         localStorage.setItem(this.activationStorageKey, '1');
+        this.trackEvent('activation_completed');
 
         if (this.startBtn) {
             this.startBtn.classList.remove('cta-pulse');

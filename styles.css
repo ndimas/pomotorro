@@ -1105,25 +1105,6 @@ input:checked+.slider:before {
     background: rgba(0, 0, 0, 0.02);
 }
 
-.debug-btn {
-    background: transparent;
-    color: #8d6d5b;
-    border: 1px dashed rgba(141, 109, 91, 0.45);
-    padding: 10px 12px;
-    border-radius: 12px;
-    font-family: 'Inter', sans-serif;
-    font-weight: 600;
-    font-size: 0.86rem;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.debug-btn:hover {
-    border-color: rgba(255, 107, 107, 0.45);
-    color: #7a4f3d;
-    background: rgba(255, 255, 255, 0.62);
-}
-
 .auth-divider {
     text-align: center;
     color: #b2bec3;
