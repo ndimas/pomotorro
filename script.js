@@ -6,18 +6,34 @@ window.__pomotorroInitialized = true;
 
 const SUPABASE_URL = 'https://vdagjbbpxtrjtpldixeg.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_o-Snpn2_HYTB0424MkIs0g_SA3ijr7K';
+const STRIPE_PAYMENT_LINK = 'https://buy.stripe.com/test_6oU6oGdOv5z99Gm72q4F201';
+const STRIPE_PUBLISHABLE_KEY = '';
+const STRIPE_PRICE_ID = '';
+const IS_FILE_ORIGIN = window.location.protocol === 'file:';
 if (!window.supabase || typeof window.supabase.createClient !== 'function') {
     console.error('Supabase client library failed to load.');
     return;
 }
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+    auth: {
+        autoRefreshToken: !IS_FILE_ORIGIN,
+        persistSession: !IS_FILE_ORIGIN,
+        detectSessionInUrl: !IS_FILE_ORIGIN
+    }
+});
 
 class AuthManager {
     constructor(timer) {
         this.timer = timer;
         this.user = null;
+        this.isAuthDisabledForFileOrigin = IS_FILE_ORIGIN;
         this.initializeElements();
         this.initializeEventListeners();
+        if (this.isAuthDisabledForFileOrigin) {
+            this.showFileOriginMessage();
+            this.handleAuthStateChange(null, true);
+            return;
+        }
         this.checkUser();
     }
 
@@ -73,6 +89,10 @@ class AuthManager {
 
     async runNetworkDebug() {
         if (!this.authError) return;
+        if (this.isAuthDisabledForFileOrigin) {
+            this.showFileOriginMessage();
+            return;
+        }
         const keyPreview = SUPABASE_KEY.slice(0, 18);
         this.authError.style.color = '#7a4f3d';
         this.authError.textContent = 'Running network checks...';
@@ -163,6 +183,10 @@ class AuthManager {
 
     openModal() {
         this.loginModal.classList.add('show');
+        if (this.isAuthDisabledForFileOrigin) {
+            this.showFileOriginMessage();
+            return;
+        }
         this.authError.textContent = '';
     }
 
@@ -174,6 +198,10 @@ class AuthManager {
     }
 
     async signIn() {
+        if (this.isAuthDisabledForFileOrigin) {
+            this.showFileOriginMessage();
+            return;
+        }
         const email = this.emailInput.value.trim();
         const password = this.passwordInput.value.trim();
 
@@ -203,6 +231,10 @@ class AuthManager {
     }
 
     async signUp() {
+        if (this.isAuthDisabledForFileOrigin) {
+            this.showFileOriginMessage();
+            return;
+        }
         const email = this.emailInput.value.trim();
         const password = this.passwordInput.value.trim();
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -283,6 +315,12 @@ class AuthManager {
     async signOut() {
         await supabase.auth.signOut();
     }
+
+    showFileOriginMessage() {
+        if (!this.authError) return;
+        this.authError.style.color = 'orange';
+        this.authError.textContent = 'Auth is disabled on file://. Start a local server (for example: python3 -m http.server 5500) and open http://localhost:5500/';
+    }
 }
 
 class PomodoroTimer {
@@ -339,6 +377,7 @@ class PomodoroTimer {
         this.initializeAudio();
         this.initializeTaskSystem();
         this.initializeMonetizationTeaser();
+        this.handleCheckoutStatusFromUrl();
 
         // Initialize Auth Manager
         this.authManager = new AuthManager(this);
@@ -427,9 +466,46 @@ class PomodoroTimer {
     }
 
     openProIntent() {
-        const subject = encodeURIComponent('Pomotorro Pro Waitlist');
-        const body = encodeURIComponent('Hey team, I want early access to Pomotorro Pro.');
-        window.location.href = `mailto:contact@why.sh?subject=${subject}&body=${body}`;
+        if (window.Stripe && STRIPE_PUBLISHABLE_KEY && STRIPE_PRICE_ID) {
+            const stripe = window.Stripe(STRIPE_PUBLISHABLE_KEY);
+            const successUrl = `${window.location.origin}${window.location.pathname}?checkout=success`;
+            const cancelUrl = `${window.location.origin}${window.location.pathname}?checkout=cancel`;
+            stripe.redirectToCheckout({
+                lineItems: [{ price: STRIPE_PRICE_ID, quantity: 1 }],
+                mode: 'payment',
+                successUrl,
+                cancelUrl
+            }).then(result => {
+                if (result?.error) {
+                    this.showNotification(result.error.message || 'Unable to start checkout right now.');
+                }
+            });
+            return;
+        }
+
+        if (STRIPE_PAYMENT_LINK) {
+            window.open(STRIPE_PAYMENT_LINK, '_blank', 'noopener,noreferrer');
+            return;
+        }
+
+        this.showNotification('Pro checkout is not configured yet.');
+    }
+
+    handleCheckoutStatusFromUrl() {
+        const url = new URL(window.location.href);
+        const checkoutStatus = url.searchParams.get('checkout');
+
+        if (checkoutStatus === 'success') {
+            this.dismissProTeaser();
+            this.showNotification('Payment received. Pro unlock is being prepared.');
+        } else if (checkoutStatus === 'cancel') {
+            this.showNotification('Checkout canceled. You can try again anytime.');
+        } else {
+            return;
+        }
+
+        url.searchParams.delete('checkout');
+        window.history.replaceState({}, '', url.toString());
     }
 
     toggleTimer() {
