@@ -43,7 +43,6 @@ class AuthManager {
         this.emailInput = document.getElementById('emailInput');
         this.passwordInput = document.getElementById('passwordInput');
         this.loginSubmitBtn = document.getElementById('loginSubmitBtn');
-        this.networkDebugBtn = document.getElementById('networkDebugBtn');
         this.signupSubmitBtn = document.getElementById('signupSubmitBtn');
         this.authError = document.getElementById('authError');
 
@@ -78,61 +77,9 @@ class AuthManager {
             this.loginSubmitBtn.addEventListener('click', () => this.signIn());
         }
 
-        if (this.networkDebugBtn) {
-            this.networkDebugBtn.addEventListener('click', () => this.runNetworkDebug());
-        }
-
         if (this.signupSubmitBtn) {
             this.signupSubmitBtn.addEventListener('click', () => this.signUp());
         }
-    }
-
-    async runNetworkDebug() {
-        if (!this.authError) return;
-        if (this.isAuthDisabledForFileOrigin) {
-            this.showFileOriginMessage();
-            return;
-        }
-        const keyPreview = SUPABASE_KEY.slice(0, 18);
-        this.authError.style.color = '#7a4f3d';
-        this.authError.textContent = 'Running network checks...';
-
-        const diagnostics = [];
-        diagnostics.push(`host=${new URL(SUPABASE_URL).host}`);
-        diagnostics.push(`key=${keyPreview}...`);
-
-        try {
-            const health = await fetch(`${SUPABASE_URL}/auth/v1/health`, {
-                headers: { apikey: SUPABASE_KEY }
-            });
-            diagnostics.push(`health=${health.status}`);
-        } catch (error) {
-            diagnostics.push(`health_error=${error?.message || 'fetch_failed'}`);
-        }
-
-        const email = (this.emailInput?.value || '').trim();
-        const password = (this.passwordInput?.value || '').trim();
-        if (email && password) {
-            try {
-                const tokenRes = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
-                    method: 'POST',
-                    headers: {
-                        apikey: SUPABASE_KEY,
-                        Authorization: `Bearer ${SUPABASE_KEY}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ email, password })
-                });
-                diagnostics.push(`token=${tokenRes.status}`);
-            } catch (error) {
-                diagnostics.push(`token_error=${error?.message || 'fetch_failed'}`);
-            }
-        } else {
-            diagnostics.push('token=skipped(no_credentials)');
-        }
-
-        this.authError.style.color = diagnostics.some(item => item.includes('_error=')) ? 'red' : 'green';
-        this.authError.textContent = diagnostics.join(' | ');
     }
 
     async checkUser() {
