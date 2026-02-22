@@ -370,7 +370,7 @@ class AuthManager {
     showFileOriginMessage() {
         if (!this.authError) return;
         this.authError.style.color = 'orange';
-        this.authError.textContent = 'Auth is disabled on file://. Start a local server (for example: python3 -m http.server 5500) and open http://localhost:5500/';
+        this.authError.textContent = '';
     }
 }
 
