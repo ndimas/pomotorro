@@ -218,9 +218,13 @@ class AuthManager {
         this.loginModal.classList.add('show');
         this.timer.trackEvent('auth_modal_opened');
         if (this.isAuthDisabledForFileOrigin) {
+            if (this.loginSubmitBtn) this.loginSubmitBtn.disabled = true;
+            if (this.signupSubmitBtn) this.signupSubmitBtn.disabled = true;
             this.showFileOriginMessage();
             return;
         }
+        if (this.loginSubmitBtn) this.loginSubmitBtn.disabled = false;
+        if (this.signupSubmitBtn) this.signupSubmitBtn.disabled = false;
         this.authError.textContent = '';
     }
 
@@ -370,7 +374,7 @@ class AuthManager {
     showFileOriginMessage() {
         if (!this.authError) return;
         this.authError.style.color = 'orange';
-        this.authError.textContent = '';
+        this.authError.textContent = 'Login is unavailable in file preview. Open the hosted app to sign in.';
     }
 }
 
