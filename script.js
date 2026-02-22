@@ -10,6 +10,8 @@ const STRIPE_PAYMENT_LINK = 'https://buy.stripe.com/test_6oU6oGdOv5z99Gm72q4F201
 const STRIPE_PUBLISHABLE_KEY = '';
 const STRIPE_PRICE_ID = '';
 const IS_FILE_ORIGIN = window.location.protocol === 'file:';
+const PRODUCTION_HOSTS = new Set(['pomotorro.co', 'www.pomotorro.co']);
+const ENABLE_CHECKOUT_IN_PRODUCTION = false;
 
 function sanitizeEventProps(props = {}) {
     const sanitized = {};
@@ -495,6 +497,15 @@ class PomodoroTimer {
         return window.location.protocol === 'file:';
     }
 
+    isProductionHost() {
+        return PRODUCTION_HOSTS.has(window.location.hostname);
+    }
+
+    isCheckoutEnabled() {
+        if (this.isProductionHost()) return ENABLE_CHECKOUT_IN_PRODUCTION;
+        return true;
+    }
+
     trackEvent(name, properties = {}) {
         if (!this.analytics) return;
         this.analytics.track(name, properties);
@@ -537,6 +548,12 @@ class PomodoroTimer {
 
     openProIntent() {
         this.trackEvent('support_checkout_click');
+        if (!this.isCheckoutEnabled()) {
+            this.trackEvent('support_checkout_failed', { category: 'feature_disabled' });
+            this.showNotification('Support checkout is temporarily unavailable.');
+            return;
+        }
+
         if (window.Stripe && STRIPE_PUBLISHABLE_KEY && STRIPE_PRICE_ID) {
             const stripe = window.Stripe(STRIPE_PUBLISHABLE_KEY);
             const successUrl = `${window.location.origin}${window.location.pathname}?checkout=success`;
@@ -569,6 +586,14 @@ class PomodoroTimer {
     handleCheckoutStatusFromUrl() {
         const url = new URL(window.location.href);
         const checkoutStatus = url.searchParams.get('checkout');
+
+        if (!this.isCheckoutEnabled()) {
+            if (checkoutStatus) {
+                url.searchParams.delete('checkout');
+                window.history.replaceState({}, '', url.toString());
+            }
+            return;
+        }
 
         if (checkoutStatus === 'success') {
             this.dismissProTeaser();
