@@ -535,6 +535,9 @@ class PomodoroTimer {
         if (!this.proTeaser) return;
         const dismissed = localStorage.getItem(this.proTeaserStorageKey) === '1';
         this.proTeaser.style.display = dismissed ? 'none' : 'block';
+        if (this.upgradeBtn) {
+            this.upgradeBtn.style.display = this.isCheckoutEnabled() ? '' : 'none';
+        }
         this.trackEvent('support_card_rendered', { dismissed: dismissed ? 1 : 0 });
     }
 
