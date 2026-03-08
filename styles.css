@@ -1083,6 +1083,12 @@ input:checked+.slider:before {
     color: var(--primary-color);
 }
 
+.auth-link-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    text-decoration: none;
+}
+
 .primary-btn {
     background: var(--primary-gradient);
     color: white;

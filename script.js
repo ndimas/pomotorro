@@ -251,11 +251,19 @@ class AuthManager {
         if (this.isAuthDisabledForFileOrigin) {
             if (this.loginSubmitBtn) this.loginSubmitBtn.disabled = true;
             if (this.signupSubmitBtn) this.signupSubmitBtn.disabled = true;
+            if (this.forgotPasswordBtn) {
+                this.forgotPasswordBtn.disabled = true;
+                this.forgotPasswordBtn.textContent = 'Forgot password (hosted only)';
+            }
             this.showFileOriginMessage();
             return;
         }
         if (this.loginSubmitBtn) this.loginSubmitBtn.disabled = false;
         if (this.signupSubmitBtn) this.signupSubmitBtn.disabled = false;
+        if (this.forgotPasswordBtn) {
+            this.forgotPasswordBtn.disabled = false;
+            this.forgotPasswordBtn.textContent = 'Forgot password?';
+        }
         this.authError.textContent = '';
     }
 
