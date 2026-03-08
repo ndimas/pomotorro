@@ -206,20 +206,21 @@
         </div>
 
         <div class="settings-body">
-          <div class="auth-form">
+          <form class="auth-form" id="authForm" autocomplete="on">
             <div class="form-group">
               <label>Email</label>
-              <input type="email" id="emailInput" placeholder="you@example.com">
+              <input type="email" id="emailInput" name="email" autocomplete="username" placeholder="you@example.com">
             </div>
             <div class="form-group">
               <label>Password</label>
-              <input type="password" id="passwordInput" placeholder="••••••••">
+              <input type="password" id="passwordInput" name="password" autocomplete="current-password" placeholder="••••••••">
             </div>
+            <button class="auth-link-btn" id="forgotPasswordBtn" type="button">Forgot password?</button>
             <div class="auth-error" id="authError"></div>
-            <button class="primary-btn" id="loginSubmitBtn">Log In</button>
+            <button class="primary-btn" id="loginSubmitBtn" type="submit">Log In</button>
             <div class="auth-divider">or</div>
-            <button class="secondary-btn" id="signupSubmitBtn">Create Account</button>
-          </div>
+            <button class="secondary-btn" id="signupSubmitBtn" type="button">Create Account</button>
+          </form>
         </div>
       </div>
     </div>

@@ -137,11 +137,14 @@ class AuthManager {
     initializeElements() {
         this.loginBtn = document.getElementById('loginBtn');
         this.loginModal = document.getElementById('loginModal');
+        this.authForm = document.getElementById('authForm');
         this.emailInput = document.getElementById('emailInput');
         this.passwordInput = document.getElementById('passwordInput');
+        this.forgotPasswordBtn = document.getElementById('forgotPasswordBtn');
         this.loginSubmitBtn = document.getElementById('loginSubmitBtn');
         this.signupSubmitBtn = document.getElementById('signupSubmitBtn');
         this.authError = document.getElementById('authError');
+        this.isHandlingPasswordRecovery = false;
 
         // Close button for modal
         if (this.loginModal) {
@@ -170,23 +173,37 @@ class AuthManager {
             });
         }
 
-        if (this.loginSubmitBtn) {
-            this.loginSubmitBtn.addEventListener('click', () => this.signIn());
+        if (this.authForm) {
+            this.authForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.signIn();
+            });
         }
 
         if (this.signupSubmitBtn) {
             this.signupSubmitBtn.addEventListener('click', () => this.signUp());
         }
+
+        if (this.forgotPasswordBtn) {
+            this.forgotPasswordBtn.addEventListener('click', () => this.sendPasswordResetEmail());
+        }
     }
 
     async checkUser() {
         // Check for errors in URL (e.g. from email link)
-        this.checkUrlForErrors();
+        const shouldHandleRecovery = this.checkUrlForErrors();
 
         const { data: { session } } = await supabase.auth.getSession();
         this.handleAuthStateChange(session, true);
+        if (shouldHandleRecovery && session) {
+            await this.completePasswordRecovery();
+        }
 
         supabase.auth.onAuthStateChange((event, session) => {
+            if (event === 'PASSWORD_RECOVERY') {
+                this.completePasswordRecovery();
+                return;
+            }
             // Treat INITIAL_SESSION as an initial check to prevent "Logged out" notification
             const isInitial = event === 'INITIAL_SESSION';
             this.handleAuthStateChange(session, isInitial);
@@ -195,20 +212,23 @@ class AuthManager {
 
     checkUrlForErrors() {
         const hash = window.location.hash;
-        if (hash && hash.includes('error=')) {
-            const params = new URLSearchParams(hash.substring(1)); // remove #
-            const error = params.get('error');
-            const errorDescription = params.get('error_description');
+        if (!hash) return false;
+        const params = new URLSearchParams(hash.substring(1)); // remove #
+        const error = params.get('error');
+        const errorDescription = params.get('error_description');
+        const type = params.get('type');
 
-            if (error) {
-                this.openModal();
-                this.authError.textContent = errorDescription ? decodeURIComponent(errorDescription.replace(/\+/g, ' ')) : 'Authentication error';
-                this.authError.style.color = 'red';
+        if (error) {
+            this.openModal();
+            this.authError.textContent = errorDescription ? decodeURIComponent(errorDescription.replace(/\+/g, ' ')) : 'Authentication error';
+            this.authError.style.color = 'red';
 
-                // Clear the hash without reloading
-                history.replaceState(null, null, ' ');
-            }
+            // Clear the hash without reloading
+            history.replaceState(null, null, ' ');
+            return false;
         }
+
+        return type === 'recovery';
     }
 
     handleAuthStateChange(session, isInitial = false) {
@@ -281,6 +301,89 @@ class AuthManager {
         } finally {
             this.loginSubmitBtn.disabled = false;
             this.loginSubmitBtn.textContent = 'Log In';
+        }
+    }
+
+    async sendPasswordResetEmail() {
+        if (this.isAuthDisabledForFileOrigin) {
+            this.showFileOriginMessage();
+            return;
+        }
+        const email = this.emailInput.value.trim();
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+        if (!emailRegex.test(email)) {
+            this.authError.textContent = 'Enter your email first, then try reset.';
+            this.authError.style.color = 'red';
+            this.timer.trackEvent('auth_password_reset_validation_error');
+            return;
+        }
+
+        this.forgotPasswordBtn.disabled = true;
+        this.forgotPasswordBtn.textContent = 'Sending...';
+        this.timer.trackEvent('auth_password_reset_request');
+        try {
+            const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                redirectTo: getEmailRedirectUrl()
+            });
+            if (error) {
+                this.authError.textContent = error.message || 'Unable to send reset email.';
+                this.authError.style.color = 'red';
+                this.timer.trackEvent('auth_password_reset_failed', { category: categorizeAuthError(error.message) });
+                return;
+            }
+            this.authError.textContent = 'Reset link sent. Check your email.';
+            this.authError.style.color = 'green';
+            this.timer.trackEvent('auth_password_reset_sent');
+        } catch (error) {
+            this.authError.textContent = error?.message || 'Unable to send reset email.';
+            this.authError.style.color = 'red';
+            this.timer.trackEvent('auth_password_reset_failed', { category: categorizeAuthError(error?.message) });
+        } finally {
+            this.forgotPasswordBtn.disabled = false;
+            this.forgotPasswordBtn.textContent = 'Forgot password?';
+        }
+    }
+
+    async completePasswordRecovery() {
+        if (this.isHandlingPasswordRecovery) return;
+        this.isHandlingPasswordRecovery = true;
+        this.openModal();
+        this.timer.trackEvent('auth_password_recovery_started');
+
+        try {
+            const newPassword = window.prompt('Enter your new password (minimum 6 characters):', '');
+            if (!newPassword) {
+                this.authError.textContent = 'Password reset canceled.';
+                this.authError.style.color = 'orange';
+                this.timer.trackEvent('auth_password_recovery_canceled');
+                return;
+            }
+            if (newPassword.length < 6) {
+                this.authError.textContent = 'Password must be at least 6 characters.';
+                this.authError.style.color = 'red';
+                this.timer.trackEvent('auth_password_recovery_validation_error');
+                return;
+            }
+
+            const { error } = await supabase.auth.updateUser({ password: newPassword });
+            if (error) {
+                this.authError.textContent = error.message || 'Unable to update password.';
+                this.authError.style.color = 'red';
+                this.timer.trackEvent('auth_password_recovery_failed', { category: categorizeAuthError(error.message) });
+                return;
+            }
+
+            this.authError.textContent = 'Password updated. You can log in now.';
+            this.authError.style.color = 'green';
+            this.timer.trackEvent('auth_password_recovery_success');
+        } catch (error) {
+            this.authError.textContent = error?.message || 'Unable to update password.';
+            this.authError.style.color = 'red';
+            this.timer.trackEvent('auth_password_recovery_failed', { category: categorizeAuthError(error?.message) });
+        } finally {
+            history.replaceState(null, null, window.location.pathname + window.location.search);
+            this.isHandlingPasswordRecovery = false;
         }
     }
 

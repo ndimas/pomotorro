@@ -1067,6 +1067,22 @@ input:checked+.slider:before {
     min-height: 20px;
 }
 
+.auth-link-btn {
+    align-self: flex-end;
+    border: none;
+    background: transparent;
+    color: #636e72;
+    cursor: pointer;
+    font-size: 0.85rem;
+    padding: 0;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.auth-link-btn:hover {
+    color: var(--primary-color);
+}
+
 .primary-btn {
     background: var(--primary-gradient);
     color: white;
