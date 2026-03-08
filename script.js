@@ -10,6 +10,8 @@ const STRIPE_PAYMENT_LINK = 'https://buy.stripe.com/test_6oU6oGdOv5z99Gm72q4F201
 const STRIPE_PUBLISHABLE_KEY = '';
 const STRIPE_PRICE_ID = '';
 const IS_FILE_ORIGIN = window.location.protocol === 'file:';
+const URL_FLAGS = new URLSearchParams(window.location.search);
+const ENABLE_FORGOT_IN_FILE_PREVIEW = URL_FLAGS.has('forgot');
 const PRODUCTION_HOSTS = new Set(['pomotorro.co', 'www.pomotorro.co']);
 const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]']);
 const AUTH_REDIRECT_ORIGIN = 'https://pomotorro.co';
@@ -252,10 +254,15 @@ class AuthManager {
             if (this.loginSubmitBtn) this.loginSubmitBtn.disabled = true;
             if (this.signupSubmitBtn) this.signupSubmitBtn.disabled = true;
             if (this.forgotPasswordBtn) {
-                this.forgotPasswordBtn.disabled = true;
-                this.forgotPasswordBtn.textContent = 'Forgot password (hosted only)';
+                this.forgotPasswordBtn.disabled = !ENABLE_FORGOT_IN_FILE_PREVIEW;
+                this.forgotPasswordBtn.textContent = ENABLE_FORGOT_IN_FILE_PREVIEW ? 'Forgot password?' : 'Forgot password (hosted only)';
             }
-            this.showFileOriginMessage();
+            if (ENABLE_FORGOT_IN_FILE_PREVIEW) {
+                this.authError.style.color = 'orange';
+                this.authError.textContent = 'Preview mode: only password reset email is enabled.';
+            } else {
+                this.showFileOriginMessage();
+            }
             return;
         }
         if (this.loginSubmitBtn) this.loginSubmitBtn.disabled = false;
@@ -313,7 +320,7 @@ class AuthManager {
     }
 
     async sendPasswordResetEmail() {
-        if (this.isAuthDisabledForFileOrigin) {
+        if (this.isAuthDisabledForFileOrigin && !ENABLE_FORGOT_IN_FILE_PREVIEW) {
             this.showFileOriginMessage();
             return;
         }
