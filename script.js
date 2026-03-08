@@ -11,7 +11,16 @@ const STRIPE_PUBLISHABLE_KEY = '';
 const STRIPE_PRICE_ID = '';
 const IS_FILE_ORIGIN = window.location.protocol === 'file:';
 const PRODUCTION_HOSTS = new Set(['pomotorro.co', 'www.pomotorro.co']);
+const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]']);
+const AUTH_REDIRECT_ORIGIN = 'https://pomotorro.co';
 const ENABLE_CHECKOUT_IN_PRODUCTION = false;
+
+function getEmailRedirectUrl() {
+    const hostname = window.location.hostname;
+    const path = window.location.pathname || '/';
+    const origin = LOCAL_HOSTS.has(hostname) ? window.location.origin : AUTH_REDIRECT_ORIGIN;
+    return `${origin}${path}`;
+}
 
 function sanitizeEventProps(props = {}) {
     const sanitized = {};
@@ -313,7 +322,7 @@ class AuthManager {
                 email,
                 password,
                 options: {
-                    emailRedirectTo: `${window.location.origin}${window.location.pathname}`
+                    emailRedirectTo: getEmailRedirectUrl()
                 }
             });
 
